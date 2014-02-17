@@ -13,9 +13,12 @@
 #include <float.h>
 #include "heap.h"
 
+typedef enum { SOURCE, SINK, STEINER } VertexType;
+
 typedef struct _Vertex {
+	VertexType type;
 	int weight;
-	GSList *edges; /* list of vertex indices */
+	GHashTable *edges; /* list of vertex indices */
 } Vertex;
 
 typedef struct _Edge {
@@ -27,6 +30,7 @@ typedef struct _Edge {
 typedef struct _Graph {
 	Vertex *nodes;
 	int num_nodes;
+	int num_source_sink_nodes;
 	int max_nodes;
 
 	Edge *edges;
@@ -52,15 +56,26 @@ Graph *alloc_graph(int num_initial_nodes, int num_initial_edges)
 	return g;
 }
 
-void add_vertex(Graph *g, float weight)
+void set_vertex_type(Graph *g, int v, VertexType type)
+{
+	assert(v < g->num_nodes);
+	if (g->nodes[v].type != type) {
+		if (type == STEINER) {
+			g->num_source_sink_nodes--;
+		}
+	}
+}
+
+void add_vertex(Graph *g, float weight, VertexType type)
 {
 	if (g->num_nodes >= g->max_nodes) {
 		g->max_nodes += REALLOC_INC;
 		g->nodes = realloc(g->nodes, sizeof(Vertex) * g->max_nodes);
 	}
 
-	g->nodes[g->num_nodes].edges = NULL;
+	g->nodes[g->num_nodes].edges = g_hash_table_new(g_direct_hash, g_direct_equal);
 	g->nodes[g->num_nodes].weight = weight;
+	g->nodes[g->num_nodes].type = type;
 	g->num_nodes++;
 }
 
@@ -71,29 +86,53 @@ static bool edge_exists(Graph *g, int v1, int v2)
 	int e;
 	bool exists;
 
-	l = g->nodes[v1].edges;
-	exists = false;
-	while (l && !exists) {
-		e = l->data;
-		edge = &g->edges[e];
-		assert(edge->v1 == v1);
-		if (edge->v2 == v2) {
-			exists = true;
-		}
-		l = l->next;
-	}
-	return exists;
+//	l = g->nodes[v1].edges;
+//	exists = false;
+//	while (l && !exists) {
+//		e = l->data;
+//		edge = &g->edges[e];
+//		assert(edge->v1 == v1);
+//		if (edge->v2 == v2) {
+//			exists = true;
+//		}
+//		l = l->next;
+//	}
+	return g_hash_table_contains(g->nodes[v1].edges, v2);
 }
 
-//float get_edge_weight(Graph *g, int v1, int v2)
-//{
-//	g->nodes[v1].edges
-//}
+void set_edge_weight(Graph *g, int v1, int v2, float weight)
+{
+	GSList *l;
+	Edge *edge;
+	int e;
+
+//	l = g->nodes[v1].edges;
 //
-//void set_edge_weight(Graph *g, int v1, int v2, float weight)
-//{
-//
-//}
+//	while (l) {
+//		edge = &g->edges[(int)l->data];
+//		assert(edge->v1 == v1);
+//		if (edge->v2 == v2) {
+//			edge->weight = weight;
+//			break;
+//		}
+//		l = l->next;
+//	}
+	assert(edge_exists(g, v1, v2));
+	e = (int)g_hash_table_lookup(g->nodes[v1].edges, v2);
+	edge = &g->edges[e];
+	edge->weight = weight;
+}
+
+float get_edge_weight(Graph *g, int v1, int v2)
+{
+	Edge *edge;
+	int e;
+
+	assert(edge_exists(g, v1, v2));
+	e = (int)g_hash_table_lookup(g->nodes[v1].edges, v2);
+	edge = &g->edges[e];
+	return edge->weight;
+}
 
 void add_edge(Graph *g, int v1, int v2, float weight)
 {
@@ -111,7 +150,7 @@ void add_edge(Graph *g, int v1, int v2, float weight)
 		edge->v2 = v2;
 		edge->weight = weight;
 
-		g->nodes[v1].edges = g_slist_append(g->nodes[v1].edges, g->num_edges);
+		g_hash_table_insert(g->nodes[v1].edges, v2, g->num_edges);
 		g->num_edges++;
 	}
 }
@@ -130,7 +169,7 @@ Triple *get_triples(Graph *g)
 	int i, j, k;
 	int check;
 
-	n = 10;//g->num_nodes;
+	n = g->num_nodes;
 	num_triples = n*(n-1)*(n-2) / (3*2);
 
 	triples = malloc(sizeof(Triple) * num_triples);
@@ -159,6 +198,8 @@ void build_shortest_path_tree(Graph *g, int source, Graph **shortest_path_tree)
 	GSList *l;
 	Edge *edge;
 	int i, e;
+	GHashTableIter iter;
+	gpointer key, value;
 
 	distance = malloc(sizeof(float) * g->num_nodes);
 	predecessor = malloc(sizeof(int) * g->num_nodes);
@@ -182,11 +223,10 @@ void build_shortest_path_tree(Graph *g, int source, Graph **shortest_path_tree)
 		//assert(!visited[current]);
 		if (!visited[current]) {
 			printf("current: %d\n", current);
-			l = g->nodes[current].edges;
-			while (l) {
-				e = l->data;
-				edge = &g->edges[e];
-				assert(edge->v1 == current);
+			g_hash_table_iter_init(&iter, g->nodes[current].edges);
+			while (g_hash_table_iter_next(&iter, &key, &value)) {
+				edge = &g->edges[(int)value];
+				assert(edge->v1 == current && edge->v2 == (int)key);
 				neighbour = edge->v2;
 
 				/*if (!visited[neighbour]) {
@@ -200,10 +240,7 @@ void build_shortest_path_tree(Graph *g, int source, Graph **shortest_path_tree)
 					heap_update(&heap, neighbour, distance[neighbour]);
 					printf("neighbour update: %d\n", neighbour);
 				}
-
-				l = l->next;
 			}
-
 			visited[current] = true;
 		}
 	}
@@ -211,7 +248,7 @@ void build_shortest_path_tree(Graph *g, int source, Graph **shortest_path_tree)
 	for (i = 0; i < g->num_nodes; i++) {
 		assert(visited[i]);
 
-		add_vertex(*shortest_path_tree, 0);
+		add_vertex(*shortest_path_tree, 0, SOURCE);
 		if (predecessor[i] < 0) {
 			assert(i == source);
 		} else {
@@ -224,6 +261,11 @@ void build_shortest_path_tree(Graph *g, int source, Graph **shortest_path_tree)
 	free(distance);
 	free(predecessor);
 	free(visited);
+}
+
+void zel()
+{
+
 }
 
 typedef enum { TILE = 0, CHANX, CHANY } GridGraphVertexType;
@@ -244,7 +286,7 @@ Graph *grid_graph_alloc(int nx, int ny)
 
 	for (x = 0; x < nx; x++) {
 		for (y = 0; y < ny; y++) {
-			add_vertex(g, 0);
+			add_vertex(g, 0, SOURCE);
 		}
 	}
 	for (x = 0; x < nx; x++) {
@@ -276,14 +318,14 @@ void test()
 	const int nx = 10;
 	const int ny = 10;
 
-	get_triples(0);
+	//get_triples(0);
 	g = grid_graph_alloc(nx, ny);
 
 	g = alloc_graph(3, 3);
-	add_vertex(g, 0);
-	add_vertex(g, 0);
-	add_vertex(g, 0);
-	add_vertex(g, 0);
+	add_vertex(g, 0, SOURCE);
+	add_vertex(g, 0, SOURCE);
+	add_vertex(g, 0, SOURCE);
+	add_vertex(g, 0, SOURCE);
 	add_edge(g, 0, 1, 1);
 	add_edge(g, 1, 2, 1);
 	add_edge(g, 0, 2, 5);
