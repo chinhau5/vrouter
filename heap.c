@@ -12,25 +12,25 @@
 #include <assert.h>
 #include "heap.h"
 
-void heap_init(s_heap *heap)
+void heap_init(Heap *heap)
 {
-	heap->buffer = calloc(INITIAL_HEAP_SIZE, sizeof(s_heap_item));
+	heap->buffer = calloc(INITIAL_HEAP_SIZE, sizeof(HeapItem));
 	heap->size = INITIAL_HEAP_SIZE;
 	heap->tail = -1;
 }
 
-void heap_free(s_heap *heap)
+void heap_free(Heap *heap)
 {
 	free(heap->buffer);
 	heap->buffer = NULL;
 }
 
-void heap_clear(s_heap *heap)
+void heap_clear(Heap *heap)
 {
 	heap->tail = -1;
 }
 
-void print_heap(s_heap *heap)
+void print_heap(Heap *heap)
 {
 	int i;
 	for (i = 0; i <= heap->tail; i++) {
@@ -38,10 +38,10 @@ void print_heap(s_heap *heap)
 	}
 }
 
-static void heap_bubble_up(s_heap *heap, int current)
+static void heap_bubble_up(Heap *heap, int current)
 {
 	int parent;
-	s_heap_item temp;
+	HeapItem temp;
 	bool done;
 
 	done = false;
@@ -58,7 +58,7 @@ static void heap_bubble_up(s_heap *heap, int current)
 	}
 }
 
-void heap_push(s_heap *heap, void *data, float cost)
+void heap_push(Heap *heap, void *data, float cost)
 {
 	int current;
 
@@ -66,7 +66,7 @@ void heap_push(s_heap *heap, void *data, float cost)
 
 	if (heap->tail >= heap->size) {
 		heap->size += INITIAL_HEAP_SIZE;
-		heap->buffer = realloc(heap->buffer, sizeof(s_heap_item) * heap->size);
+		heap->buffer = realloc(heap->buffer, sizeof(HeapItem) * heap->size);
 	}
 	heap->buffer[current].cost = cost;
 	heap->buffer[current].data = data;
@@ -74,7 +74,7 @@ void heap_push(s_heap *heap, void *data, float cost)
 	heap_bubble_up(heap, current);
 }
 
-void heap_update(s_heap *heap, void *data, float new_cost)
+void heap_update(Heap *heap, void *data, float new_cost)
 {
 	int i;
 	int current;
@@ -93,13 +93,13 @@ void heap_update(s_heap *heap, void *data, float new_cost)
 	}
 }
 
-void *heap_pop(s_heap *heap)
+void *heap_pop(Heap *heap)
 {
 	int parent;
 	int child;
 	bool empty;
 	bool done;
-	s_heap_item temp;
+	HeapItem temp;
 	void *output;
 
 	if (heap->tail < 0) {
@@ -133,7 +133,7 @@ void *heap_pop(s_heap *heap)
 	return output;
 }
 
-bool heap_is_empty(s_heap *heap)
+bool heap_is_empty(Heap *heap)
 {
 	return heap->tail < 0;
 }
