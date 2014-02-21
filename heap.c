@@ -93,19 +93,21 @@ void heap_update(Heap *heap, void *data, float new_cost)
 	}
 }
 
-void *heap_pop(Heap *heap)
+bool heap_pop(Heap *heap, void **data, float *cost)
 {
 	int parent;
 	int child;
 	bool empty;
 	bool done;
 	HeapItem temp;
-	void *output;
 
 	if (heap->tail < 0) {
-		output = NULL;
+		empty = true;
 	} else {
-		output = heap->buffer[0].data;
+		empty = false;
+
+		*data = heap->buffer[0].data;
+		*cost = heap->buffer[0].cost;
 
 		heap->buffer[0] = heap->buffer[heap->tail];
 		heap->tail--;
@@ -130,10 +132,10 @@ void *heap_pop(Heap *heap)
 		}
 	}
 
-	return output;
+	return empty;
 }
 
-bool heap_is_empty(Heap *heap)
+bool heap_empty(Heap *heap)
 {
 	return heap->tail < 0;
 }

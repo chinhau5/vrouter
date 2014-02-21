@@ -92,6 +92,11 @@ void add_vertex(Graph *g, float weight, VertexType type)
 	}
 }
 
+//float graph_total_edge_weights(Graph *g)
+//{
+//	int
+//}
+
 static bool edge_exists(Graph *g, int v1, int v2)
 {
 	GSList *l;
@@ -110,7 +115,7 @@ static bool edge_exists(Graph *g, int v1, int v2)
 //		}
 //		l = l->next;
 //	}
-	return g_hash_table_contains(g->nodes[v1].edges, v2);
+	return g_hash_table_contains(g->nodes[v1].edges, (gpointer)v2);
 }
 
 void set_edge_weight(Graph *g, int v1, int v2, float weight)
@@ -131,7 +136,7 @@ void set_edge_weight(Graph *g, int v1, int v2, float weight)
 //		l = l->next;
 //	}
 	assert(edge_exists(g, v1, v2));
-	e = (int)g_hash_table_lookup(g->nodes[v1].edges, v2);
+	e = (int)g_hash_table_lookup(g->nodes[v1].edges, (gpointer)v2);
 	edge = &g->edges[e];
 	edge->weight = weight;
 }
@@ -142,7 +147,7 @@ float get_edge_weight(Graph *g, int v1, int v2)
 	int e;
 
 	assert(edge_exists(g, v1, v2));
-	e = (int)g_hash_table_lookup(g->nodes[v1].edges, v2);
+	e = (int)g_hash_table_lookup(g->nodes[v1].edges, (gpointer)v2);
 	edge = &g->edges[e];
 	return edge->weight;
 }
@@ -163,7 +168,7 @@ void add_edge(Graph *g, int v1, int v2, float weight)
 		edge->v2 = v2;
 		edge->weight = weight;
 
-		g_hash_table_insert(g->nodes[v1].edges, v2, g->num_edges);
+		g_hash_table_insert(g->nodes[v1].edges, (gpointer)v2, (gpointer)g->num_edges);
 		g->num_edges++;
 	}
 }
@@ -212,10 +217,12 @@ void build_min_spanning_tree(Graph *g, int source, Graph *mst)
 	int num_v;
 	GHashTableIter iter;
 	gpointer key, value;
-	int i, e;
+	int i, edge_index;
+	Edge *edge;
 	int current;
 	int neighbour;
 	bool visited;
+	float cost;
 
 	for (i = 0; i < g->num_nodes; i++) {
 		g->nodes[i].visited = false;
@@ -227,12 +234,12 @@ void build_min_spanning_tree(Graph *g, int source, Graph *mst)
 		if (num_v == 0) {
 			current = source;
 		} else {
-			if (heap_is_empty(&heap)) {
+			if (heap_empty(&heap)) {
 				assert(0);
 			}
-			e = heap_pop(&heap);
-			printf("v1=%d v2=%d w=%f\n", g->edges[e].v1, g->edges[e].v2, g->edges[e].weight);
-			current = g->edges[e].v2;
+			heap_pop(&heap, &edge_index, &cost);
+			printf("v1=%d v2=%d w=%f\n", g->edges[edge_index].v1, g->edges[edge_index].v2, g->edges[edge_index].weight);
+			current = g->edges[edge_index].v2;
 		}
 
 		assert(!g->nodes[current].visited);
@@ -243,14 +250,19 @@ void build_min_spanning_tree(Graph *g, int source, Graph *mst)
 		g_hash_table_iter_init(&iter, g->nodes[current].edges);
 
 		while (g_hash_table_iter_next(&iter, &key, &value)) {
-			e = (int)value;
+			edge_index = (int)value;
+			edge = &g->edges[edge_index];
 			neighbour = (int)key;
-			assert(g->edges[e].v1 == current && g->edges[e].v2 == neighbour);
+
+			assert(edge->v1 == current && edge->v2 == neighbour);
+
 			if (!g->nodes[neighbour].visited) {
-				heap_push(&heap, e, g->edges[e].weight);
+				heap_push(&heap, (void *)edge_index, edge->weight);
 			}
 		}
 	}
+
+	heap_free(&heap);
 }
 
 void build_shortest_path_tree(Graph *g, int source, float *distance, int *predecessor)
@@ -263,9 +275,10 @@ void build_shortest_path_tree(Graph *g, int source, float *distance, int *predec
 	//bool *visited;
 	GSList *l;
 	Edge *edge;
-	int i, e;
+	int i, edge_index;
 	GHashTableIter iter;
 	gpointer key, value;
+	float cost;
 
 	//distance = malloc(sizeof(float) * g->num_nodes);
 	//predecessor = malloc(sizeof(int) * g->num_nodes);
@@ -281,39 +294,44 @@ void build_shortest_path_tree(Graph *g, int source, float *distance, int *predec
 	//*shortest_path_tree = alloc_graph(g->num_nodes, g->num_nodes-1);
 
 	heap_init(&heap);
-	heap_push(&heap, source, 0);
+
 	distance[source] = 0;
+	heap_push(&heap, (void *)source, distance[source]);
 
-	while (!heap_is_empty(&heap)) {
-		current = heap_pop(&heap);
+	while (!heap_empty(&heap)) {
+		heap_pop(&heap, &current, &cost);
+		//assert(distance[current] == cost);
 
-		//assert(!visited[current]);
-		if (!g->nodes[current].visited) {
-			printf("current: %d\n", current);
+		//assert(!g->nodes[current].visited);
+		//if (!g->nodes[current].visited) {
+			//printf("current: %d\n", current);
 			g_hash_table_iter_init(&iter, g->nodes[current].edges);
 			while (g_hash_table_iter_next(&iter, &key, &value)) {
-				edge = &g->edges[(int)value];
-				assert(edge->v1 == current && edge->v2 == (int)key);
-				neighbour = edge->v2;
+				edge_index = (int)value;
+				neighbour = (int)key;
+				edge = &g->edges[edge_index];
+
+				assert(edge->v1 == current && edge->v2 == neighbour);
 
 				/*if (!visited[neighbour]) {
 					distance[neighbour] = distance[current] + edge->weight;
 					predecessor[neighbour] = current;
 					heap_push(&heap, distance[current] + edge->weight, neighbour);
 					printf("neighbour push: %d cost = %f + %f\n", neighbour, distance[current], edge->weight);
-				} else */if (distance[current] + edge->weight < distance[neighbour]) {
+				} else */
+				if (/*!g->nodes[neighbour].visited && */distance[current] + edge->weight < distance[neighbour]) {
 					distance[neighbour] = distance[current] + edge->weight;
 					predecessor[neighbour] = current;
-					heap_update(&heap, neighbour, distance[neighbour]);
-					printf("neighbour update: %d\n", neighbour);
+					heap_update(&heap, (void *)neighbour, distance[neighbour]);
+					//printf("neighbour update: %d\n", neighbour);
 				}
 			}
-			g->nodes[current].visited = true;
-		}
+			//g->nodes[current].visited = true;
+		//}
 	}
 
-//	for (i = 0; i < g->num_nodes; i++) {
-//		assert(visited[i]);
+	for (i = 0; i < g->num_nodes; i++) {
+		//assert(g->nodes[i].visited);
 //
 //		add_vertex(*shortest_path_tree, 0, SOURCE);
 //		if (predecessor[i] < 0) {
@@ -321,8 +339,10 @@ void build_shortest_path_tree(Graph *g, int source, float *distance, int *predec
 //		} else {
 //			add_edge(*shortest_path_tree, source, i, distance[i]);
 //		}
-//		printf("i: %d distance: %f\n", i, distance[i]);
-//	}
+		printf("i: %d distance: %f\n", i, distance[i]);
+	}
+
+	heap_free(&heap);
 
 //	fflush(stdout);
 //	free(distance);
@@ -455,6 +475,8 @@ void test()
 	Graph *spt;
 	const int nx = 10;
 	const int ny = 10;
+	float distance[1000];
+	int predecessor[1000];
 
 	g = grid_graph_alloc(nx, ny);
 
@@ -465,11 +487,11 @@ void test()
 	add_vertex(g, 0, SOURCE);
 	add_edge(g, 0, 1, 1);
 	add_edge(g, 1, 2, 1);
-	add_edge(g, 0, 2, 5);
+	add_edge(g, 0, 2, 3);
 	add_edge(g, 0, 3, 10);
 	//get_triples(g);
 
-	//build_shortest_path_tree(g, 0, &spt);
+	build_shortest_path_tree(g, 0, distance, predecessor);
 }
 
 //t_vertex *alloc_vertex()
@@ -511,6 +533,6 @@ void test()
 
 int main()
 {
-	test_mst();
+	test();
 	return 0;
 }

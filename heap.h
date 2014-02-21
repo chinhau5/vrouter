@@ -25,8 +25,8 @@ void heap_init(Heap *heap);
 void heap_free(Heap *heap);
 void heap_push(Heap *heap, void *data, float cost);
 void heap_update(Heap *heap, void *data, float new_cost);
-void *heap_pop(Heap *heap);
-bool heap_is_empty(Heap *heap);
+bool heap_pop(Heap *heap, void **data, float *cost);
+bool heap_empty(Heap *heap);
 void print_heap(Heap *heap);
 void heap_clear(Heap *heap);
 
