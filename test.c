@@ -66,6 +66,7 @@ void test_mst()
 	mst = alloc_graph(4, 4);
 
 	build_min_spanning_tree(g, 0, mst);
+	print_graph(mst);
 }
 
 void test()
@@ -89,7 +90,36 @@ void test()
 	add_undirected_edge(g, 0, 2, 3);
 	add_undirected_edge(g, 0, 3, 10);
 	//get_triples(g);
+	spt = alloc_graph(100, 100);
 
-	build_shortest_path_tree(g, 0, distance, predecessor);
+	build_shortest_path_tree(g, 0, distance, predecessor, spt);
+	print_graph(spt);
 }
 
+void test_kmb()
+{
+	Graph *g;
+	Graph *spt;
+	const int nx = 10;
+	const int ny = 10;
+	float distance[1000];
+	int predecessor[1000];
+
+	g = grid_graph_alloc(nx, ny);
+
+	g = alloc_graph(3, 3);
+	add_vertex(g, 0, SOURCE);
+	add_vertex(g, 0, SOURCE);
+	add_vertex(g, 0, SOURCE);
+	add_vertex(g, 0, SOURCE);
+	add_undirected_edge(g, 0, 1, 1);
+	add_undirected_edge(g, 1, 2, 1);
+	add_undirected_edge(g, 0, 2, 3);
+	add_undirected_edge(g, 0, 3, 10);
+	//get_triples(g);
+	spt = alloc_graph(100, 100);
+
+	kmb(g, spt);
+	print_graph(spt);
+
+}

@@ -16,6 +16,8 @@
 
 int main()
 {
-	test_mst();
+	//test_mst();
+	//test();
+	test_kmb();
 	return 0;
 }

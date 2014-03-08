@@ -49,10 +49,11 @@ float get_edge_weight(Graph *g, int v1, int v2);
 void set_edge_weight(Graph *g, int v1, int v2, float weight);
 float calc_total_edge_weights(Graph *g);
 
-void build_distance_graph(Graph *g, Graph **distance_graph);
-void build_shortest_path_tree(Graph *g, int source, float *distance, int *predecessor);
+void build_distance_graph(Graph *g, Graph *distance_graph);
+void build_shortest_path_tree(Graph *g, int source, float *distance, int *predecessor, Graph *spt);
 void build_min_spanning_tree(Graph *g, int source, Graph *mst);
 
+void print_graph(Graph *g);
 #define REALLOC_INC 100
 
 #endif /* GRAPH_H_ */

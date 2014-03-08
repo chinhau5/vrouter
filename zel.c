@@ -57,10 +57,20 @@ void zel(Graph *g)
 	int num_triples;
 	int i, j, v;
 	Graph *distance_graph;
+	Graph *mst;
 	float total_weight, max_weight;
 	int min_triple;
+	float uv_weight, vw_weight;
+	float f_weight, f_contracted_weight;
+	float win, max_win;
+	int best_triple;
+	int *steiner_nodes;
+	int num_steiner_nodes;
 
-	build_distance_graph(g, &distance_graph);
+	build_distance_graph(g, distance_graph);
+	mst = alloc_graph(g->num_nodes, g->num_nodes-1);
+	steiner_nodes = malloc(sizeof(int) * g->num_nodes);
+	num_steiner_nodes = 0;
 
 	triples = get_triples(g, &num_triples);
 
@@ -80,9 +90,43 @@ void zel(Graph *g)
 		}
 	}
 
-//	do {
-//		for (i = 0; i < num_triples; i++) {
-//			distance_graph
-//		}
-//	} while (win > 0);
+	do {
+		best_triple = -1;
+		max_win = 0;
+
+		for (i = 0; i < num_triples; i++) {
+			build_min_spanning_tree(distance_graph, 0, mst);
+			f_weight = calc_total_edge_weights(mst);
+
+			/* backup weights before contracting */
+			uv_weight = get_edge_weight(distance_graph, triples[i].v[0], triples[i].v[1]);
+			vw_weight = get_edge_weight(distance_graph, triples[i].v[1], triples[i].v[2]);
+
+			/* contract */
+			set_edge_weight(distance_graph, triples[i].v[0], triples[i].v[1], 0);
+			set_edge_weight(distance_graph, triples[i].v[1], triples[i].v[2], 0);
+
+			build_min_spanning_tree(distance_graph, 0, mst);
+			f_contracted_weight = calc_total_edge_weights(mst);
+
+			/* restore */
+			set_edge_weight(distance_graph, triples[i].v[0], triples[i].v[1], uv_weight);
+			set_edge_weight(distance_graph, triples[i].v[1], triples[i].v[2], vw_weight);
+
+			/* win = mst(F)-mst(F(z))-d(z) */
+			win = f_weight - f_contracted_weight - triples[i].distance;
+			if (win > max_win) {
+				max_win = win;
+				best_triple = i;
+			}
+		}
+
+		if (best_triple != -1) {
+			/* contract permanently */
+			set_edge_weight(distance_graph, triples[best_triple].v[0], triples[best_triple].v[1], 0);
+			set_edge_weight(distance_graph, triples[best_triple].v[1], triples[best_triple].v[2], 0);
+
+			steiner_nodes[num_steiner_nodes++] = triples[best_triple].min;
+		}
+	} while (best_triple != -1);
 }

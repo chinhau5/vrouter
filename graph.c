@@ -7,6 +7,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "graph.h"
 #include "heap.h"
 
@@ -61,12 +62,12 @@ void set_vertex_type(Graph *g, int v, VertexType type)
 	}
 }
 
-static bool edge_exists(Graph *g, int v1, int v2)
+static inline bool edge_exists(Graph *g, int v1, int v2)
 {
-	GSList *l;
-	Edge *edge;
-	int e;
-	bool exists;
+//	GSList *l;
+//	Edge *edge;
+//	int e;
+//	bool exists;
 
 //	l = g->nodes[v1].edges;
 //	exists = false;
@@ -79,7 +80,7 @@ static bool edge_exists(Graph *g, int v1, int v2)
 //		}
 //		l = l->next;
 //	}
-	return g_hash_table_contains(g->nodes[v1].edges, (gpointer)v2);
+	return g_hash_table_contains(g->nodes[v1].edges, GINT_TO_POINTER(v2));
 }
 
 bool add_directed_edge(Graph *g, int v1, int v2, float weight)
@@ -99,7 +100,7 @@ bool add_directed_edge(Graph *g, int v1, int v2, float weight)
 		edge->v2 = v2;
 		edge->weight = weight;
 
-		g_hash_table_insert(g->nodes[v1].edges, (gpointer)v2, (gpointer)edge);
+		g_hash_table_insert(g->nodes[v1].edges, GINT_TO_POINTER(v2), edge);
 
 		added = true;
 	} else {
@@ -120,12 +121,26 @@ void add_undirected_edge(Graph *g, int v1, int v2, float weight)
 	}
 }
 
+void remove_directed_edge(Graph *g, int v1, int v2)
+{
+	if (edge_exists(g, v1, v2)) {
+		g_hash_table_remove(g->nodes[v1].edges, GINT_TO_POINTER(v2));
+		assert(!edge_exists(g, v1, v2));
+	}
+}
+
+void remove_undirected_edge(Graph *g, int v1, int v2)
+{
+	remove_directed_edge(g, v1, v2);
+	remove_directed_edge(g, v2, v1);
+}
+
 float get_edge_weight(Graph *g, int v1, int v2)
 {
 	Edge *edge;
 
 	assert(edge_exists(g, v1, v2));
-	edge = g_hash_table_lookup(g->nodes[v1].edges, (gpointer)v2);
+	edge = g_hash_table_lookup(g->nodes[v1].edges, GINT_TO_POINTER(v2));
 	return edge->weight;
 }
 
@@ -145,7 +160,7 @@ void set_edge_weight(Graph *g, int v1, int v2, float weight)
 //		l = l->next;
 //	}
 	assert(edge_exists(g, v1, v2));
-	edge = g_hash_table_lookup(g->nodes[v1].edges, (gpointer)v2);
+	edge = g_hash_table_lookup(g->nodes[v1].edges, GINT_TO_POINTER(v2));
 	edge->weight = weight;
 }
 
@@ -178,6 +193,7 @@ void build_min_spanning_tree(Graph *g, int source, Graph *mst)
 	int i, edge_index;
 	Edge *edge;
 	int current;
+	void *best_v;
 	int neighbour;
 	GHashTableIter iter;
 	gpointer key, value;
@@ -187,10 +203,31 @@ void build_min_spanning_tree(Graph *g, int source, Graph *mst)
 	for (i = 0; i < g->num_nodes; i++) {
 		g->nodes[i].visited = false;
 	}
+	for (i = 0; i < g->num_nodes; i++) {
+		add_vertex(mst, 0, SOURCE);
+	}
 	heap_init(&heap);
+
+	for (i = 0; i < g->num_nodes; i++) {
+		g_hash_table_iter_init(&iter, g->nodes[i].edges);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			heap_push(&heap, value, 0);
+		}
+	}
 
 	num_v = 0;
 	while (num_v < g->num_nodes) {
+		heap_pop(&heap, &edge, &cost);
+		if (g->nodes[edge->v1].visited && !g->nodes[edge->v2].visited) {
+			add_directed_edge(mst, 
+		}
+	}
+	/*while (num_v < g->num_nodes) {
+		heap_pop(&heap, &best_v, &cost);
+		if (num_v > 0) {
+			add_directed_edge(mst, current, GPOINTER_TO_INT(best_v), cost);
+		}
+		current = GPOINTER_TO_INT(best_v);
 		if (num_v == 0) {
 			current = source;
 		} else {
@@ -200,14 +237,13 @@ void build_min_spanning_tree(Graph *g, int source, Graph *mst)
 			heap_pop(&heap, &edge, &cost);
 			printf("v1=%d v2=%d w=%f\n", edge->v1, edge->v2, edge->weight);
 			assert(edge->weight == cost);
+			add_directed_edge(mst, edge->v1, edge->v2, edge->weight);
 			current = edge->v2;
 		}
 
 		assert(!g->nodes[current].visited);
 
-		g->nodes[current].visited = true;
-		num_v++;
-
+		
 //		for (l = g->nodes[current].edges; l != NULL; l = l->next) {
 //			edge_index = (int)l->data;
 //			edge = &g->edges[edge_index];
@@ -222,20 +258,23 @@ void build_min_spanning_tree(Graph *g, int source, Graph *mst)
 
 		while (g_hash_table_iter_next(&iter, &key, &value)) {
 			edge = value;
-			neighbour = (int)key;
+			neighbour = GPOINTER_TO_INT(key);
 
 			assert(edge->v1 == current && edge->v2 == neighbour);
 
 			if (!g->nodes[neighbour].visited) {
-				heap_push(&heap, edge, edge->weight);
+				heap_push(&heap, GINT_TO_POINTER(neighbour), edge->weight);
 			}
 		}
-	}
+
+		g->nodes[current].visited = true;
+		num_v++;
+	}*/
 
 	heap_free(&heap);
 }
 
-void build_shortest_path_tree(Graph *g, int source, float *distance, int *predecessor)
+void build_shortest_path_tree(Graph *g, int source, float *distance, int *predecessor, Graph *spt)
 {
 	int current;
 	int neighbour;
@@ -249,6 +288,7 @@ void build_shortest_path_tree(Graph *g, int source, float *distance, int *predec
 	gpointer key, value;
 	GHashTableIter iter;
 	float cost;
+	void *best_v;
 
 	//distance = malloc(sizeof(float) * g->num_nodes);
 	//predecessor = malloc(sizeof(int) * g->num_nodes);
@@ -266,10 +306,11 @@ void build_shortest_path_tree(Graph *g, int source, float *distance, int *predec
 	heap_init(&heap);
 
 	distance[source] = 0;
-	heap_push(&heap, (void *)source, distance[source]);
+	heap_push(&heap, GINT_TO_POINTER(source), distance[source]);
 
 	while (!heap_empty(&heap)) {
-		heap_pop(&heap, &current, &cost);
+		heap_pop(&heap, &best_v, &cost);
+		current = GPOINTER_TO_INT(best_v);
 		//assert(distance[current] == cost);
 
 		//assert(!g->nodes[current].visited);
@@ -288,7 +329,7 @@ void build_shortest_path_tree(Graph *g, int source, float *distance, int *predec
 //			}
 			g_hash_table_iter_init(&iter, g->nodes[current].edges);
 			while (g_hash_table_iter_next(&iter, &key, &value)) {
-				neighbour = (int)key;
+				neighbour = GPOINTER_TO_INT(key);
 				edge = value;
 
 				assert(edge->v1 == current && edge->v2 == neighbour);
@@ -302,7 +343,7 @@ void build_shortest_path_tree(Graph *g, int source, float *distance, int *predec
 				if (/*!g->nodes[neighbour].visited && */distance[current] + edge->weight < distance[neighbour]) {
 					distance[neighbour] = distance[current] + edge->weight;
 					predecessor[neighbour] = current;
-					heap_update(&heap, (void *)neighbour, distance[neighbour]);
+					heap_update(&heap, GINT_TO_POINTER(neighbour), distance[neighbour]);
 					//printf("neighbour update: %d\n", neighbour);
 				}
 			}
@@ -310,16 +351,16 @@ void build_shortest_path_tree(Graph *g, int source, float *distance, int *predec
 		//}
 	}
 
-	for (i = 0; i < g->num_nodes; i++) {
-		//assert(g->nodes[i].visited);
-//
-//		add_vertex(*shortest_path_tree, 0, SOURCE);
-//		if (predecessor[i] < 0) {
-//			assert(i == source);
-//		} else {
-//			add_edge(*shortest_path_tree, source, i, distance[i]);
-//		}
-		printf("i: %d distance: %f\n", i, distance[i]);
+	if (spt) {
+		for (i = 0; i < g->num_nodes; i++) {
+			add_vertex(spt, 0, SOURCE);
+		}
+		for (i = 0; i < g->num_nodes; i++) {
+			if (predecessor[i] != -1) {
+				add_directed_edge(spt, predecessor[i], i, distance[i]-distance[predecessor[i]]);
+			}
+			printf("i: %d distance: %f\n", i, distance[i]);
+		}
 	}
 
 	heap_free(&heap);
@@ -330,7 +371,7 @@ void build_shortest_path_tree(Graph *g, int source, float *distance, int *predec
 //	free(visited);
 }
 
-void build_distance_graph(Graph *g, Graph **distance_graph)
+void build_distance_graph(Graph *g, Graph *distance_graph)
 {
 	int i, j;
 	float *distance;
@@ -338,21 +379,37 @@ void build_distance_graph(Graph *g, Graph **distance_graph)
 
 	distance = malloc(sizeof(float) * g->num_nodes);
 	predecessor = malloc(sizeof(int) * g->num_nodes);
-	*distance_graph = alloc_graph(g->num_nodes, g->num_nodes*(g->num_nodes-1)); /* complete graph */
+	//*distance_graph = alloc_graph(g->num_nodes, g->num_nodes*(g->num_nodes-1)); /* complete graph */
 
 	for (i = 0; i < g->num_nodes; i++) {
-		add_vertex(*distance_graph, 0, SOURCE);
+		add_vertex(distance_graph, 0, SOURCE);
 	}
 
 	for (i = 0; i < g->num_nodes; i++) {
-		build_shortest_path_tree(g, i, distance, predecessor);
+		build_shortest_path_tree(g, i, distance, predecessor, NULL);
 		for (j = 0; j < g->num_nodes; j++) {
 			if (j != i) {
-				add_directed_edge(*distance_graph, i, j, distance[j]);
+				add_directed_edge(distance_graph, i, j, distance[j]);
 			}
 		}
 	}
 
 	free(distance);
 	free(predecessor);
+}
+
+void print_graph(Graph *g)
+{
+	int i;
+	GHashTableIter iter;
+	gpointer key, value;
+	Edge *edge;
+	for (i = 0; i < g->num_nodes; i++) {
+		g_hash_table_iter_init(&iter, g->nodes[i].edges);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			edge = value;
+			assert(edge->v1 == i && edge->v2 == GPOINTER_TO_INT(key));
+			printf("v1: %d v2: %d weight: %f\n", edge->v1, edge->v2, edge->weight);
+		}
+	}
 }
