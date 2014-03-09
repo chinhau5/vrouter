@@ -28,11 +28,11 @@ Triple *get_triples(Graph *g, int *num_triples)
 
 	n = 0;
 	for (i = 0; i < g->num_nodes; i++) {
-		if (g->nodes[i].type == STEINER) continue;
+		if (get_vertex_property(g, i, VertexProperty_Type) == SteinerVertex) continue;
 		for (j = i + 1; j < g->num_nodes; j++) {
-			if (g->nodes[j].type == STEINER) continue;
+			if (get_vertex_property(g, j, VertexProperty_Type) == SteinerVertex) continue;
 			for (k = j + 1; k < g->num_nodes; k++) {
-				if (g->nodes[k].type == STEINER) continue;
+				if (get_vertex_property(g, k, VertexProperty_Type) == SteinerVertex) continue;
 				for (v = 0; v < 3; v++) {
 					triples[n].v[v] = i;
 				}
@@ -68,7 +68,7 @@ void zel(Graph *g)
 	int num_steiner_nodes;
 
 	build_distance_graph(g, distance_graph);
-	mst = alloc_graph(g->num_nodes, g->num_nodes-1);
+	mst = create_graph(g->num_nodes, g->num_nodes-1, false);
 	steiner_nodes = malloc(sizeof(int) * g->num_nodes);
 	num_steiner_nodes = 0;
 
@@ -95,8 +95,8 @@ void zel(Graph *g)
 		max_win = 0;
 
 		for (i = 0; i < num_triples; i++) {
-			build_min_spanning_tree(distance_graph, 0, mst);
-			f_weight = calc_total_edge_weights(mst);
+			build_minimum_spanning_tree(distance_graph, 0, mst);
+			f_weight = calculate_total_edge_weights(mst);
 
 			/* backup weights before contracting */
 			uv_weight = get_edge_weight(distance_graph, triples[i].v[0], triples[i].v[1]);
@@ -106,8 +106,8 @@ void zel(Graph *g)
 			set_edge_weight(distance_graph, triples[i].v[0], triples[i].v[1], 0);
 			set_edge_weight(distance_graph, triples[i].v[1], triples[i].v[2], 0);
 
-			build_min_spanning_tree(distance_graph, 0, mst);
-			f_contracted_weight = calc_total_edge_weights(mst);
+			build_minimum_spanning_tree(distance_graph, 0, mst);
+			f_contracted_weight = calculate_total_edge_weights(mst);
 
 			/* restore */
 			set_edge_weight(distance_graph, triples[i].v[0], triples[i].v[1], uv_weight);

@@ -11,7 +11,7 @@
 #include "graph.h"
 #include "heap.h"
 
-Graph *alloc_graph(int num_initial_nodes, int num_initial_edges)
+Graph *create_graph(int num_initial_nodes, int num_initial_edges, bool directed)
 {
 	Graph *g;
 
@@ -19,10 +19,7 @@ Graph *alloc_graph(int num_initial_nodes, int num_initial_edges)
 	g->max_nodes = num_initial_nodes;
 	g->nodes = malloc(sizeof(Vertex) * g->max_nodes);
 	g->num_nodes = 0;
-
-//	g->max_edges = num_initial_edges;
-//	g->edges = malloc(sizeof(Edge) * g->max_edges);
-//	g->num_edges = 0;
+	g->directed = directed;
 
 	return g;
 }
@@ -30,36 +27,33 @@ Graph *alloc_graph(int num_initial_nodes, int num_initial_edges)
 void graph_reset(Graph *g)
 {
 	g->num_nodes = 0;
-	//g->num_edges = 0;
 }
 
-void add_vertex(Graph *g, float weight, VertexType type)
+void add_vertex(Graph *g, int n)
 {
-	if (g->num_nodes >= g->max_nodes) {
-		g->max_nodes += REALLOC_INC;
-		g->nodes = realloc(g->nodes, sizeof(Vertex) * g->max_nodes);
-	}
-
-	g->nodes[g->num_nodes].edges = g_hash_table_new(g_direct_hash, g_direct_equal);
-	g->nodes[g->num_nodes].weight = weight;
-	g->nodes[g->num_nodes].type = type;
-
-	g->num_nodes++;
-	if (type == SOURCE || type == SINK) {
-		g->num_source_sink_nodes++;
-	}
-}
-
-void set_vertex_type(Graph *g, int v, VertexType type)
-{
-	assert(v < g->num_nodes);
-	if (g->nodes[v].type != type) {
-		if (type == STEINER) {
-			g->num_source_sink_nodes--;
-		} else if (type == SOURCE || type == SINK) {
-			g->num_source_sink_nodes++;
+	int i;
+	for (i = 0; i < n; i++) {
+		if (g->num_nodes >= g->max_nodes) {
+			g->max_nodes += REALLOC_INC;
+			g->nodes = realloc(g->nodes, sizeof(Vertex) * g->max_nodes);
 		}
+
+		g->nodes[g->num_nodes].edges = g_hash_table_new(g_direct_hash, g_direct_equal);
+
+		g->num_nodes++;
 	}
+}
+
+void set_vertex_property(Graph *g, int v, int prop, int value)
+{
+	assert(v >= 0 && v < g->num_nodes && prop >= 0 && prop < VERTEX_NUM_PROPERTIES);
+	g->nodes[v].properties[prop] = value;
+}
+
+int get_vertex_property(Graph *g, int v, int prop)
+{
+	assert(v >= 0 && v < g->num_nodes && prop >= 0 && prop < VERTEX_NUM_PROPERTIES);
+	return g->nodes[v].properties[prop];
 }
 
 static inline bool edge_exists(Graph *g, int v1, int v2)
@@ -80,20 +74,16 @@ static inline bool edge_exists(Graph *g, int v1, int v2)
 //		}
 //		l = l->next;
 //	}
+	assert(v1 >= 0 && v1 < g->num_nodes);
 	return g_hash_table_contains(g->nodes[v1].edges, GINT_TO_POINTER(v2));
 }
 
-bool add_directed_edge(Graph *g, int v1, int v2, float weight)
+static bool add_directed_edge(Graph *g, int v1, int v2, float weight)
 {
 	Edge *edge;
 	bool added;
 
-//	if (g->num_edges >= g->max_edges) {
-//		g->max_edges += REALLOC_INC;
-//		g->edges = realloc(g->edges, sizeof(Edge) * g->max_edges);
-//	}
-
-	assert(v1 < g->num_nodes && v2 < g->num_nodes);
+	assert(v1 >= 0 && v1 < g->num_nodes && v2 >= 0 && v2 < g->num_nodes);
 	if (!edge_exists(g, v1, v2)) {
 		edge = malloc(sizeof(Edge));
 		edge->v1 = v1;
@@ -110,61 +100,57 @@ bool add_directed_edge(Graph *g, int v1, int v2, float weight)
 	return added;
 }
 
-void add_undirected_edge(Graph *g, int v1, int v2, float weight)
+void add_edge(Graph *g, int v1, int v2, float weight)
 {
-	bool added;
-
-	added = add_directed_edge(g, v1, v2, weight);
-	if (added) {
-		added = add_directed_edge(g, v2, v1, weight);
-		assert(added);
+	add_directed_edge(g, v1, v2, weight);
+	if (!g->directed) {
+		add_directed_edge(g, v2, v1, weight);
 	}
-}
+}	
 
-void remove_directed_edge(Graph *g, int v1, int v2)
+static void remove_directed_edge(Graph *g, int v1, int v2)
 {
 	if (edge_exists(g, v1, v2)) {
+		free(get_edge(g, v1, v2));
 		g_hash_table_remove(g->nodes[v1].edges, GINT_TO_POINTER(v2));
 		assert(!edge_exists(g, v1, v2));
 	}
 }
 
-void remove_undirected_edge(Graph *g, int v1, int v2)
+void remove_edge(Graph *g, int v1, int v2)
 {
 	remove_directed_edge(g, v1, v2);
-	remove_directed_edge(g, v2, v1);
+	if (!g->directed) {
+		remove_directed_edge(g, v2, v1);
+	}
+}	
+
+void deactivate_vertex(Graph *g, int v)
+{
+	assert(v < g->num_nodes);
+	g->nodes[v].active = false;
+}
+
+void activate_vertex(Graph *g, int v)
+{
+	assert(v < g->num_nodes);
+	g->nodes[v].active = true;
 }
 
 float get_edge_weight(Graph *g, int v1, int v2)
 {
-	Edge *edge;
-
-	assert(edge_exists(g, v1, v2));
-	edge = g_hash_table_lookup(g->nodes[v1].edges, GINT_TO_POINTER(v2));
-	return edge->weight;
+	return get_edge(g, v1, v2)->weight;
 }
 
 void set_edge_weight(Graph *g, int v1, int v2, float weight)
 {
 	Edge *edge;
 
-//	l = g->nodes[v1].edges;
-//
-//	while (l) {
-//		edge = &g->edges[(int)l->data];
-//		assert(edge->v1 == v1);
-//		if (edge->v2 == v2) {
-//			edge->weight = weight;
-//			break;
-//		}
-//		l = l->next;
-//	}
-	assert(edge_exists(g, v1, v2));
-	edge = g_hash_table_lookup(g->nodes[v1].edges, GINT_TO_POINTER(v2));
+	edge = get_edge(g, v1, v2); 
 	edge->weight = weight;
 }
 
-float calc_total_edge_weights(Graph *g)
+float calculate_total_edge_weights(Graph *g)
 {
 	int i;
 	GHashTableIter iter;
@@ -182,44 +168,102 @@ float calc_total_edge_weights(Graph *g)
 		}
 	}
 
-	return total;
+	return g->directed ? total : total / 2;
 }
 
-void build_min_spanning_tree(Graph *g, int source, Graph *mst)
+Edge *get_edge(Graph *g, int v1, int v2)
+{
+	assert(edge_exists(g, v1, v2));
+	return g_hash_table_lookup(g->nodes[v1].edges, GINT_TO_POINTER(v2));
+}
+
+void mark_edge(Graph *g, int v1, int v2, bool visited)
+{
+	get_edge(g, v1, v2)->visited = visited;
+	if (!g->directed) {
+		get_edge(g, v2, v1)->visited = visited;
+	}
+}
+
+void build_minimum_spanning_tree(Graph *g, int source, Graph **mst)
 {
 	Heap heap;
 	int num_v;
-	GSList *l;
-	int i, edge_index;
+	int i;
 	Edge *edge;
-	int current;
-	void *best_v;
-	int neighbour;
 	GHashTableIter iter;
 	gpointer key, value;
-	bool visited;
 	float cost;
+	int *component;
 
-	for (i = 0; i < g->num_nodes; i++) {
-		g->nodes[i].visited = false;
-	}
-	for (i = 0; i < g->num_nodes; i++) {
-		add_vertex(mst, 0, SOURCE);
-	}
 	heap_init(&heap);
+	if (mst) {
+		*mst = create_graph(g->num_nodes, g->num_nodes-1, g->directed);
+		add_vertex(*mst, g->num_nodes);
+	}
+	component = malloc(sizeof(int) * g->num_nodes);
 
+	/* init graph with proper states */	
+	for (i = 0; i < g->num_nodes; i++) {
+		component[i] = i;
+		g->nodes[i].visited = false;
+		g->nodes[i].forest = &component[i]; /* all the nodes are in independent forests */
+		g_hash_table_iter_init(&iter, g->nodes[i].edges);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			edge = value;
+			mark_edge(g, edge->v1, edge->v2, false);
+		}
+	}
+	/* push all edges into heap */
 	for (i = 0; i < g->num_nodes; i++) {
 		g_hash_table_iter_init(&iter, g->nodes[i].edges);
 		while (g_hash_table_iter_next(&iter, &key, &value)) {
-			heap_push(&heap, value, 0);
+			edge = value;
+			heap_push(&heap, edge, edge->weight);
 		}
 	}
 
-	num_v = 0;
-	while (num_v < g->num_nodes) {
+	num_v = 0; /* just for debugging */
+	/* kruskal's algorith */
+	while (!heap_empty(&heap)) {
 		heap_pop(&heap, &edge, &cost);
-		if (g->nodes[edge->v1].visited && !g->nodes[edge->v2].visited) {
-			add_directed_edge(mst, 
+		if (*g->nodes[edge->v1].forest != *g->nodes[edge->v2].forest) {
+			if (mst) {
+				add_edge(*mst, edge->v1, edge->v2, edge->weight); 
+			}
+			if (!g->nodes[edge->v1].visited && g->nodes[edge->v2].visited) {
+				g->nodes[edge->v1].visited = true;
+				g->nodes[edge->v1].forest = g->nodes[edge->v2].forest;
+				num_v++;
+			} else if (g->nodes[edge->v1].visited && !g->nodes[edge->v2].visited) {
+				g->nodes[edge->v2].visited = true;
+				g->nodes[edge->v2].forest = g->nodes[edge->v1].forest;
+				num_v++;
+			} else if (g->nodes[edge->v1].visited && g->nodes[edge->v2].visited) {
+				/* important step */
+				*g->nodes[edge->v1].forest = *g->nodes[edge->v2].forest;
+			} else {
+				assert(!g->nodes[edge->v1].visited && !g->nodes[edge->v2].visited);
+				g->nodes[edge->v1].visited = true;
+				g->nodes[edge->v2].visited = true;
+				g->nodes[edge->v1].forest = g->nodes[edge->v2].forest; /* doesnt really matter which one we change to */
+				num_v += 2;
+			}	
+			mark_edge(g, edge->v1, edge->v2, true);
+		} 	
+	}
+
+	/* result in input graph */
+	if (!mst) {
+		for (i = 0; i < g->num_nodes; i++) {
+			g_hash_table_iter_init(&iter, g->nodes[i].edges);
+			while (g_hash_table_iter_next(&iter, &key, &value)) {
+				edge = value;
+				if (!edge->visited) {
+					remove_edge(g, edge->v1, edge->v2);
+					g_hash_table_iter_init(&iter, g->nodes[i].edges);
+				}
+			}
 		}
 	}
 	/*while (num_v < g->num_nodes) {
@@ -272,9 +316,10 @@ void build_min_spanning_tree(Graph *g, int source, Graph *mst)
 	}*/
 
 	heap_free(&heap);
+	free(component);
 }
 
-void build_shortest_path_tree(Graph *g, int source, float *distance, int *predecessor, Graph *spt)
+void build_shortest_path_tree(Graph *g, int source, float *distance, int *predecessor, Graph **spt)
 {
 	int current;
 	int neighbour;
@@ -293,6 +338,7 @@ void build_shortest_path_tree(Graph *g, int source, float *distance, int *predec
 	//distance = malloc(sizeof(float) * g->num_nodes);
 	//predecessor = malloc(sizeof(int) * g->num_nodes);
 	//visited = malloc(sizeof(bool) * g->num_nodes);
+	heap_init(&heap);
 	for (i = 0; i < g->num_nodes; i++) {
 		distance[i] = FLT_MAX;
 		predecessor[i] = -1;
@@ -302,8 +348,6 @@ void build_shortest_path_tree(Graph *g, int source, float *distance, int *predec
 
 	/* star graph has g->num_nodes - 1 edges */
 	//*shortest_path_tree = alloc_graph(g->num_nodes, g->num_nodes-1);
-
-	heap_init(&heap);
 
 	distance[source] = 0;
 	heap_push(&heap, GINT_TO_POINTER(source), distance[source]);
@@ -352,14 +396,12 @@ void build_shortest_path_tree(Graph *g, int source, float *distance, int *predec
 	}
 
 	if (spt) {
-		for (i = 0; i < g->num_nodes; i++) {
-			add_vertex(spt, 0, SOURCE);
-		}
+		*spt = create_graph(g->num_nodes, g->num_nodes-1, g->directed);
+		add_vertex(*spt, g->num_nodes);
 		for (i = 0; i < g->num_nodes; i++) {
 			if (predecessor[i] != -1) {
-				add_directed_edge(spt, predecessor[i], i, distance[i]-distance[predecessor[i]]);
+				add_edge(*spt, predecessor[i], i, distance[i]-distance[predecessor[i]]);
 			}
-			printf("i: %d distance: %f\n", i, distance[i]);
 		}
 	}
 
@@ -381,15 +423,13 @@ void build_distance_graph(Graph *g, Graph *distance_graph)
 	predecessor = malloc(sizeof(int) * g->num_nodes);
 	//*distance_graph = alloc_graph(g->num_nodes, g->num_nodes*(g->num_nodes-1)); /* complete graph */
 
-	for (i = 0; i < g->num_nodes; i++) {
-		add_vertex(distance_graph, 0, SOURCE);
-	}
+	add_vertex(distance_graph, g->num_nodes);
 
 	for (i = 0; i < g->num_nodes; i++) {
 		build_shortest_path_tree(g, i, distance, predecessor, NULL);
 		for (j = 0; j < g->num_nodes; j++) {
 			if (j != i) {
-				add_directed_edge(distance_graph, i, j, distance[j]);
+				add_edge(distance_graph, i, j, distance[j]);
 			}
 		}
 	}
@@ -408,8 +448,10 @@ void print_graph(Graph *g)
 		g_hash_table_iter_init(&iter, g->nodes[i].edges);
 		while (g_hash_table_iter_next(&iter, &key, &value)) {
 			edge = value;
-			assert(edge->v1 == i && edge->v2 == GPOINTER_TO_INT(key));
-			printf("v1: %d v2: %d weight: %f\n", edge->v1, edge->v2, edge->weight);
+			if (!g->directed && edge->v2 > i) {
+				assert(edge->v1 == i && edge->v2 == GPOINTER_TO_INT(key));
+				printf("v1: %d v2: %d weight: %f\n", edge->v1, edge->v2, edge->weight);
+			}
 		}
 	}
 }
