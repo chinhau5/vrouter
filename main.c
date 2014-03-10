@@ -13,11 +13,12 @@
 #include <float.h>
 #include "heap.h"
 #include "graph.h"
+#include "test.h"
 
 int main()
 {
-	//test_mst();
-	//test();
+	/*test_mst();*/
+	/*test();*/
 	test_kmb();
 	return 0;
 }

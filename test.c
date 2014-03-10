@@ -5,7 +5,9 @@
  *      Author: chinhau5
  */
 
+#include "test.h"
 #include "graph.h"
+#include "kmb.h"
 
 typedef enum { TILE = 0, CHANX, CHANY } GridGraphVertexType;
 
@@ -28,8 +30,8 @@ Graph *grid_graph_alloc(int nx, int ny)
 		for (y = 0; y < ny; y++) {
 			tile = grid_graph_lookup(x, y, nx, ny, TILE);
 
-//			chanx = grid_graph_lookup(x, y, nx, ny, CHANX);
-//			chany = grid_graph_lookup(x, y, nx, ny, CHANY);
+/*			chanx = grid_graph_lookup(x, y, nx, ny, CHANX);*/
+/*			chany = grid_graph_lookup(x, y, nx, ny, CHANY);*/
 			if (x < nx-1) {
 				rtile = grid_graph_lookup(x+1, y, nx, ny, TILE);
 				add_edge(g, tile, rtile, 1);
@@ -68,8 +70,8 @@ void test()
 	Graph *spt;
 	const int nx = 10;
 	const int ny = 10;
-	float distance[1000];
-	int predecessor[1000];
+	float *distance;
+	int *predecessor;
 
 	g = grid_graph_alloc(nx, ny);
 
@@ -79,9 +81,9 @@ void test()
 	add_edge(g, 1, 2, 1);
 	add_edge(g, 0, 2, 3);
 	add_edge(g, 0, 3, 10);
-	//get_triples(g);
+	/*get_triples(g);*/
 
-	build_shortest_path_tree(g, 0, distance, predecessor, &spt);
+	build_shortest_path_tree(g, 0, &distance, &predecessor, &spt);
 	print_graph(spt);
 }
 
@@ -95,15 +97,15 @@ void test_kmb()
 	int predecessor[1000];
 	int i;
 
-	//g = grid_graph_alloc(nx, ny);
+	/*g = grid_graph_alloc(nx, ny);*/
 
 	g = create_graph(3, 3, false);
 	/*add_vertex(g, 4);
 	add_edge(g, 0, 1, 1);
 	add_edge(g, 1, 2, 1);
 	add_edge(g, 0, 2, 3);
-	add_edge(g, 0, 3, 10);
-	//get_triples(g);*/
+	add_edge(g, 0, 3, 10);*/
+	/*get_triples(g);*/
 	add_vertex(g, 9);
 	add_edge(g, 0, 8, 1);	
 	add_edge(g, 0, 1, 10);	

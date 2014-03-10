@@ -5,6 +5,7 @@
  *      Author: chinhau5
  */
 
+#include <stdlib.h>
 #include <assert.h>
 #include "graph.h"
 
@@ -46,10 +47,10 @@ Triple *get_triples(Graph *g, int *num_triples)
 	return triples;
 }
 
-//void contract(Graph *g, Triple *t)
-//{
-//	set_edge_weightt->
-//}
+/*void contract(Graph *g, Triple *t)*/
+/*{*/
+/*	set_edge_weightt->*/
+/*}*/
 
 void zel(Graph *g)
 {
@@ -68,7 +69,6 @@ void zel(Graph *g)
 	int num_steiner_nodes;
 
 	build_distance_graph(g, distance_graph);
-	mst = create_graph(g->num_nodes, g->num_nodes-1, false);
 	steiner_nodes = malloc(sizeof(int) * g->num_nodes);
 	num_steiner_nodes = 0;
 
@@ -95,7 +95,7 @@ void zel(Graph *g)
 		max_win = 0;
 
 		for (i = 0; i < num_triples; i++) {
-			build_minimum_spanning_tree(distance_graph, 0, mst);
+			build_minimum_spanning_tree(distance_graph, 0, &mst);
 			f_weight = calculate_total_edge_weights(mst);
 
 			/* backup weights before contracting */
@@ -106,7 +106,7 @@ void zel(Graph *g)
 			set_edge_weight(distance_graph, triples[i].v[0], triples[i].v[1], 0);
 			set_edge_weight(distance_graph, triples[i].v[1], triples[i].v[2], 0);
 
-			build_minimum_spanning_tree(distance_graph, 0, mst);
+			build_minimum_spanning_tree(distance_graph, 0, &mst);
 			f_contracted_weight = calculate_total_edge_weights(mst);
 
 			/* restore */
