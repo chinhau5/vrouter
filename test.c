@@ -5,6 +5,7 @@
  *      Author: chinhau5
  */
 
+#include <stdio.h>
 #include "test.h"
 #include "graph.h"
 #include "kmb.h"
@@ -90,7 +91,7 @@ void test()
 void test_kmb()
 {
 	Graph *g;
-	Graph *spt;
+	Graph *result;
 	const int nx = 10;
 	const int ny = 10;
 	float distance[1000];
@@ -126,9 +127,12 @@ void test_kmb()
 	set_vertex_property(g, 1, VertexProperty_Type, SteinerVertex);
 	set_vertex_property(g, 2, VertexProperty_Type, SteinerVertex);
 	set_vertex_property(g, 3, VertexProperty_Type, SteinerVertex);
-	spt = create_graph(100, 100, false);
 
-	kmb(g, spt);
-	print_graph(spt);
+	result = NULL;
+	kmb(g, &result);
+	printf("real result\n");
+	print_graph(result);
+	free_graph(result);
+	free_graph(g);
 
 }

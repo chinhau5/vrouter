@@ -8,6 +8,8 @@
 #ifndef KMB_H_
 #define KMB_H_
 
-void kmb(Graph *g, Graph *result);
+#include "graph.h"
+
+void kmb(Graph *g, Graph **result);
 
 #endif /* KMB_H_ */

@@ -41,6 +41,20 @@ void reset_graph(Graph *g)
 	}
 }
 
+void free_graph(Graph *g)
+{
+	int i;
+	Edge *edge;
+
+	for (i = 0; i < g->num_nodes; i++) {
+		FOREACH_EDGE_BEGIN(g, i, edge)
+			remove_edge(g, edge->v1, edge->v2);
+			g_hash_table_iter_init(&_iter, g->nodes[i].edges);
+		FOREACH_EDGE_END
+	}
+	free(g->nodes);
+}
+
 void add_vertex(Graph *g, int n)
 {
 	int i;
@@ -89,7 +103,7 @@ static inline bool edge_exists(Graph *g, int v1, int v2)
 	return g_hash_table_contains(g->nodes[v1].edges, GINT_TO_POINTER(v2));
 }
 
-static bool add_directed_edge(Graph *g, int v1, int v2, float weight)
+bool add_directed_edge(Graph *g, int v1, int v2, float weight)
 {
 	Edge *edge;
 	bool added;
@@ -106,7 +120,10 @@ static bool add_directed_edge(Graph *g, int v1, int v2, float weight)
 		added = true;
 	} else {
 		/* if edge exists, update the weight instead */
-		get_edge(g, v1, v2)->weight = weight;
+		edge = get_edge(g, v1, v2);
+		edge->weight = weight;
+		edge->valid = true;
+
 		added = false;
 	}
 
@@ -464,3 +481,8 @@ void print_graph(Graph *g)
 		FOREACH_EDGE_END
 	}
 }
+
+/*void copy_graph(Graph *src, Graph *dst)
+{
+	int i;
+	for (*/

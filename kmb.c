@@ -3,33 +3,30 @@
 #include <assert.h>
 #include "graph.h"
 
-void remove_non_steiner_leaves(Graph *g, int first_steiner)
+static void remove_non_steiner_leaves(Graph *g, int first_steiner)
 {
 	GQueue *stack;
 	Edge *edge;
 	int i;
-	int *num_child;
 	struct _pair {
 		int parent;
 		int child;
 	} *pair;
 	struct _pair **map;
 	struct _pair *current;
+	GSList *removed_edges;
+	GSList *item;
 
 	stack = g_queue_new();
-	map = malloc(sizeof(struct _pair *) * g->num_nodes);
+	map = calloc(g->num_nodes, sizeof(struct _pair *));
 
 	pair = malloc(sizeof(struct _pair));
 	pair->parent = -1;
 	pair->child = first_steiner;
 	g_queue_push_head(stack, pair); 
+	assert(map[pair->child] == NULL);
 	map[pair->child] = pair;
-
-	/*for (i = 0; i < g->num_nodes; i++) {
-		FOREACH_EDGE_BEGIN(g, i, edge)
-			mark_edge(g, edge->v1, edge->v2, false);
-		FOREACH_EDGE_END 
-	}*/
+	removed_edges = NULL;
 
 	while (!g_queue_is_empty(stack)) {
 		current = g_queue_pop_head(stack);
@@ -67,6 +64,7 @@ void remove_non_steiner_leaves(Graph *g, int first_steiner)
 				pair->parent = edge->v1;
 				pair->child = edge->v2;
 				g_queue_push_head(stack, pair); 
+				assert(map[edge->v2] == NULL);
 				map[edge->v2] = pair;
 
 				printf("child: %d\n", edge->v2);
@@ -74,12 +72,27 @@ void remove_non_steiner_leaves(Graph *g, int first_steiner)
 				if (!g->directed) {
 					/* make this a directed tree */
 					remove_directed_edge(g, edge->v2, edge->v1);
+					removed_edges = g_slist_prepend(removed_edges, edge);
 				}
 			FOREACH_EDGE_END 
 		}
 	}
 
+	/* need to fix the tree by adding back the edges to emulated undirected tree */
+	if (!g->directed) {
+		for (item = removed_edges; item != NULL; item = item->next) {
+			edge = item->data;
+			printf("adding back %d -> %d\n", edge->v2, edge->v1);
+			add_directed_edge(g, edge->v2, edge->v1, edge->weight);
+		}
+	}
+
 	g_queue_free(stack);
+	for (i = 0; i < g->num_nodes; i++) {
+		if (map[i]) {
+			free(map[i]);
+		}
+	}
 	free(map);
 }
 
@@ -109,18 +122,80 @@ void quick_test()
 	remove_non_steiner_leaves(g, 0);	
 }
 
-void replace_with_shortest_path(Graph *g, Graph *result)
+static void replace_with_shortest_path(Graph *mst, float **distance, int **predecessor)
+{
+	int i;
+	int current;
+	int pred;
+	Edge *edge;
+	Edge *new_edge;
+	GSList *edge_list;
+	GSList *item;
+
+	for (i = 0; i < mst->num_nodes; i++) {
+		FOREACH_EDGE_BEGIN(mst, i, edge)
+			mark_edge(mst, edge->v1, edge->v2, false);
+		FOREACH_EDGE_END	
+	}
+
+	edge_list = NULL;
+	for (i = 0; i < mst->num_nodes; i++) {
+		FOREACH_EDGE_BEGIN(mst, i, edge)
+			/* tracing a path back to source */
+			if (!edge->visited) {
+				current = edge->v2;
+				assert(current >= 0 && current < mst->num_nodes);
+				pred = predecessor[i][current]; 
+				assert(pred >= 0 && pred < mst->num_nodes);
+				/*add_edge(mst, pred, current, distance[i][current]-distance[i][pred]);*/
+				new_edge = malloc(sizeof(Edge));
+				new_edge->v1 = pred;
+				new_edge->v2 = current;
+				new_edge->weight = distance[i][current]-distance[i][pred];
+				edge_list = g_slist_prepend(edge_list, new_edge);
+				while (pred != i) {
+					current = pred;
+					pred = predecessor[i][current];
+					/*add_edge(mst, pred, current, distance[i][current]-distance[i][pred]);*/
+
+					new_edge = malloc(sizeof(Edge));
+					new_edge->v1 = pred;
+					new_edge->v2 = current;
+					new_edge->weight = distance[i][current]-distance[i][pred];
+					edge_list = g_slist_prepend(edge_list, new_edge);
+				}
+				mark_edge(mst, edge->v1, edge->v2, true);
+			}
+		FOREACH_EDGE_END
+	}
+
+	/* remove existing edges */
+	for (i = 0; i < mst->num_nodes; i++) {
+		FOREACH_EDGE_BEGIN(mst, i, edge)
+			remove_edge(mst, edge->v1, edge->v2);
+
+			g_hash_table_iter_init(&_iter, mst->nodes[i].edges);	
+		FOREACH_EDGE_END
+	}
+	/* add new edges */
+	for (item = edge_list; item != NULL; item = item->next) {
+		edge = item->data;
+		add_edge(mst, edge->v1, edge->v2, edge->weight);
+	}
+
+	g_slist_free(edge_list);
+
+	printf("mst replaced with shortest paths\n");
+	print_graph(mst);
+}
+
+void kmb(Graph *g, Graph **result)
 {
 	int i, j;
 	float **distance;
 	int **predecessor;
 	Graph *temp_graph;
 	Edge *edge;
-	int pred;
-	int current;
-	GSList *edge_list;
-	Edge *temp_edge;
-	GSList *item;
 	int steiner;  /* just to keep track of one steiner point as a starting point for mst building */
 
 	steiner = -1;
@@ -143,66 +218,14 @@ void replace_with_shortest_path(Graph *g, Graph *result)
 			}
 		} 	
 	}
-
 	printf("distance graph\n");
 	print_graph(temp_graph);
+
 	build_minimum_spanning_tree(temp_graph, steiner, NULL);
 	printf("mst of distance graph\n");
 	print_graph(temp_graph);
 
-	for (i = 0; i < temp_graph->num_nodes; i++) {
-		FOREACH_EDGE_BEGIN(temp_graph, i, edge)
-			mark_edge(temp_graph, edge->v1, edge->v2, false);
-		FOREACH_EDGE_END	
-	}
-
-	edge_list = NULL;
-	for (i = 0; i < temp_graph->num_nodes; i++) {
-		FOREACH_EDGE_BEGIN(temp_graph, i, edge)
-			/* tracing a path back to source */
-			if (!edge->visited) {
-				current = edge->v2;
-				assert(current >= 0 && current < g->num_nodes);
-				pred = predecessor[i][current]; 
-				assert(pred >= 0 && pred < g->num_nodes);
-				/*add_edge(temp_graph, pred, current, distance[i][current]-distance[i][pred]);*/
-				temp_edge = malloc(sizeof(Edge));
-				temp_edge->v1 = pred;
-				temp_edge->v2 = current;
-				temp_edge->weight = distance[i][current]-distance[i][pred];
-				edge_list = g_slist_prepend(edge_list, temp_edge);
-				while (pred != i) {
-					current = pred;
-					pred = predecessor[i][current];
-					/*add_edge(temp_graph, pred, current, distance[i][current]-distance[i][pred]);*/
-
-					temp_edge = malloc(sizeof(Edge));
-					temp_edge->v1 = pred;
-					temp_edge->v2 = current;
-					temp_edge->weight = distance[i][current]-distance[i][pred];
-					edge_list = g_slist_prepend(edge_list, temp_edge);
-				}
-				mark_edge(temp_graph, edge->v1, edge->v2, true);
-			}
-		FOREACH_EDGE_END
-	}
-
-	/* remove existing edges */
-	for (i = 0; i < temp_graph->num_nodes; i++) {
-		FOREACH_EDGE_BEGIN(temp_graph, i, edge)
-			remove_edge(temp_graph, edge->v1, edge->v2);
-
-			g_hash_table_iter_init(&_iter, temp_graph->nodes[i].edges);	
-		FOREACH_EDGE_END
-	}
-	/* add new edges */
-	for (item = edge_list; item != NULL; item = item->next) {
-		edge = item->data;
-		add_edge(temp_graph, edge->v1, edge->v2, edge->weight);
-	}
-
-	printf("mst replaced with shortest paths\n");
-	print_graph(temp_graph);
+	replace_with_shortest_path(temp_graph, distance, predecessor);
 
 	build_minimum_spanning_tree(temp_graph, steiner, NULL);
 	printf("mst of mst replaced with shortest paths\n");
@@ -214,9 +237,26 @@ void replace_with_shortest_path(Graph *g, Graph *result)
 	remove_non_steiner_leaves(temp_graph, steiner);
 	printf("mst after removing non-steiner leaf nodes\n");
 	print_graph(temp_graph);
+
+	if (result) {
+		if (*result) {
+			reset_graph(*result);
+		} else {
+			*result = create_graph(temp_graph->num_nodes, temp_graph->num_nodes-1, temp_graph->directed);
+		}	
+	} else {
+		result = &g;
+		reset_graph(*result);
+	}
+	add_vertex(*result, temp_graph->num_nodes);
+	for (i = 0; i < temp_graph->num_nodes; i++) {
+		FOREACH_EDGE_BEGIN(temp_graph, i, edge)
+			add_directed_edge(*result, edge->v1, edge->v2, edge->weight);
+		FOREACH_EDGE_END
+	}
 }
 
-int kmb(Graph *g, Graph *result)
+/*int kmb(Graph *g, Graph *result)
 {
 	Graph *temp;
 	Graph *mst;
@@ -227,4 +267,4 @@ int kmb(Graph *g, Graph *result)
 	replace_with_shortest_path(g, temp);
 
 	return 0;
-}
+}*/

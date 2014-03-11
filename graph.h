@@ -53,12 +53,14 @@ typedef struct _Graph {
 } Graph;
 
 Graph *create_graph(int num_initial_nodes, int num_initial_edges, bool directed);
-void graph_reset(Graph *g);
+void free_graph(Graph *g);
+void reset_graph(Graph *g);
 
 void add_vertex(Graph *g, int n);
 void set_vertex_type(Graph *g, int v, VertexType type);
 
 void add_edge(Graph *g, int v1, int v2, float weight);
+bool add_directed_edge(Graph *g, int v1, int v2, float weight);
 void remove_edge(Graph *g, int v1, int v2);
 void remove_directed_edge(Graph *g, int v1, int v2);
 Edge *get_edge(Graph *g, int v1, int v2);
