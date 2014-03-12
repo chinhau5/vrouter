@@ -15,11 +15,11 @@
 
 typedef enum e_block_pin_type { BLOCK_INPUT, BLOCK_OUTPUT } e_block_pin_type;
 
-//typedef enum e_side { TOP, RIGHT, BOTTOM, LEFT, SIDE_END } e_side;
+/*typedef enum e_side { TOP, RIGHT, BOTTOM, LEFT, SIDE_END } e_side;*/
 
 typedef enum e_block_type { CLB, X_CHANNEL, Y_CHANNEL, SWITCH_BOX } e_block_type;
 
-//typedef enum e_rr_type { CHANX, CHANY, RR_TYPE_END } e_rr_type;
+/*typedef enum e_rr_type { CHANX, CHANY, RR_TYPE_END } e_rr_type;*/
 
 typedef enum _e_routing_node_type {	CLK_PIN, OUTPUT_PIN, INPUT_PIN, WIRE } e_routing_node_type;
 
@@ -30,7 +30,7 @@ typedef enum _e_wire_direction {
 	NUM_WIRE_DIRECTIONS
 } e_wire_direction;
 
-//enum { INC_DIRECTION, DEC_DIRECTION, NUM_DIRECTIONS };
+/*enum { INC_DIRECTION, DEC_DIRECTION, NUM_DIRECTIONS };*/
 
 typedef struct _s_value_index_pair {
 	int value;
@@ -56,17 +56,17 @@ typedef struct _s_track {
 	bool is_increasing;
 } s_track;
 
-//typedef struct _s_rr_node {
-//	int index;
-//	e_rr_type type;
-//	bool is_increasing;
-//	int xlow;
-//	int xhigh;
-//	int ylow;
-//	int yhigh;
-//	int ptc_number;
-//	s_list children;
-//} s_rr_node;
+/*typedef struct _s_rr_node {*/
+/*	int index;*/
+/*	e_rr_type type;*/
+/*	bool is_increasing;*/
+/*	int xlow;*/
+/*	int xhigh;*/
+/*	int ylow;*/
+/*	int yhigh;*/
+/*	int ptc_number;*/
+/*	s_list children;*/
+/*} s_rr_node;*/
 
 typedef struct _s_routing_node {
 	e_routing_node_type type;
@@ -186,15 +186,15 @@ typedef struct _s_block {
 	struct _s_switch_box *switch_box;
 } s_block;
 
-//typedef struct _s_physical_block_instance {
-//	int x;
-//	int y;
-//	struct _s_pin *input_pins;
-//	int num_input_pins;
-//	struct _s_pin *output_pins;
-//	int num_output_pins;
-//	struct _s_switch_box *switch_box;
-//} s_block;
+/*typedef struct _s_physical_block_instance {*/
+/*	int x;*/
+/*	int y;*/
+/*	struct _s_pin *input_pins;*/
+/*	int num_input_pins;*/
+/*	struct _s_pin *output_pins;*/
+/*	int num_output_pins;*/
+/*	struct _s_switch_box *switch_box;*/
+/*} s_block;*/
 
 typedef struct _s_block_position {
 	int x;

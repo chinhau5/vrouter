@@ -19,6 +19,7 @@ int main()
 {
 	/*test_mst();*/
 	/*test();*/
-	test_kmb();
+/*	test_kmb();*/
+	test_parser();
 	return 0;
 }

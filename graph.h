@@ -11,17 +11,22 @@
 #include <glib.h>
 #include <stdbool.h>
 
-#define VERTEX_NUM_PROPERTIES 16
-typedef enum { VertexProperty_Type } VertexProperty;
-typedef enum { NormalVertex, SteinerVertex } VertexType;
+typedef struct _MstData {
+	int vertex_type;
+} MstData;
+
+enum { NormalVertex, SteinerVertex };
 
 typedef struct _Vertex {
 	GHashTable *edges;
 	int weight;
 	bool visited;
 	int *forest;
-	int properties[VERTEX_NUM_PROPERTIES];
+	void *data;
 } Vertex;
+
+#define GET_VERTEX_DATA(g, v, type) ((type)(g)->nodes[(v)].data)
+#define SET_VERTEX_DATA(g, v) (g)->nodes[(v)].data
 
 #define FOREACH_EDGE_BEGIN(g, v, e) { \
 		GHashTableIter _iter; \
@@ -36,9 +41,9 @@ typedef struct _Vertex {
 typedef struct _Edge {
 	int v1; /* not using pointer to Vertex because realloc invalidates the addresses */
 	int v2;
-	bool valid; /* for lazy deletion */
-	bool visited;
 	float weight;
+	bool visited;
+	bool valid; /* for lazy deletion */
 } Edge;
 
 typedef struct _Graph {
@@ -57,21 +62,20 @@ void free_graph(Graph *g);
 void reset_graph(Graph *g);
 
 void add_vertex(Graph *g, int n);
-void set_vertex_type(Graph *g, int v, VertexType type);
-
 void add_edge(Graph *g, int v1, int v2, float weight);
 bool add_directed_edge(Graph *g, int v1, int v2, float weight);
 void remove_edge(Graph *g, int v1, int v2);
 void remove_directed_edge(Graph *g, int v1, int v2);
+
 Edge *get_edge(Graph *g, int v1, int v2);
 float get_edge_weight(Graph *g, int v1, int v2);
-void mark_edge(Graph *g, int v1, int v2, bool visited);
 void set_edge_weight(Graph *g, int v1, int v2, float weight);
-void set_vertex_property(Graph *g, int v, int prop, int value);
-int get_vertex_property(Graph *g, int v, int prop);
+void mark_edge(Graph *g, int v1, int v2, bool visited);
+/*void set_vertex_property(Graph *g, int v, int prop, int value);*/
+/*int get_vertex_property(Graph *g, int v, int prop);*/
 float calculate_total_edge_weights(Graph *g);
-void deactivate_vertex(Graph *g, int v);
-void activate_vertex(Graph *g, int v);
+/*void deactivate_vertex(Graph *g, int v);*/
+/*void activate_vertex(Graph *g, int v);*/
 
 void build_distance_graph(Graph *g, Graph *distance_graph);
 void build_shortest_path_tree(Graph *g, int source, float **distance, int **predecessor, Graph **spt);

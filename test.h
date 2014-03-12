@@ -11,5 +11,5 @@
 void test();
 void test_kmb();
 void test_mst();
-
+void test_parser();
 #endif /* TEST_H_ */

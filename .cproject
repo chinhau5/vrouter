@@ -31,15 +31,19 @@
 								<option id="gnu.c.compiler.exe.debug.option.debugging.level.1128856798" name="Debug Level" superClass="gnu.c.compiler.exe.debug.option.debugging.level" value="gnu.c.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.include.paths.1038105363" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="/usr/include/glib-2.0/glib"/>
+									<listOptionValue builtIn="false" value="/usr/include/libxml2"/>
 									<listOptionValue builtIn="false" value="/usr/include/glib-2.0"/>
 								</option>
 								<option id="gnu.c.compiler.option.misc.other.161981073" name="Other flags" superClass="gnu.c.compiler.option.misc.other" value="-c -fmessage-length=0 `pkg-config --cflags glib-2.0`" valueType="string"/>
 								<option id="gnu.c.compiler.option.warnings.pedantic.992091668" name="Pedantic (-pedantic)" superClass="gnu.c.compiler.option.warnings.pedantic" value="true" valueType="boolean"/>
-								<option id="gnu.c.compiler.option.warnings.pedantic.error.1815170970" name="Pedantic warnings as errors (-pedantic-errors)" superClass="gnu.c.compiler.option.warnings.pedantic.error" value="true" valueType="boolean"/>
+								<option id="gnu.c.compiler.option.warnings.pedantic.error.1815170970" name="Pedantic warnings as errors (-pedantic-errors)" superClass="gnu.c.compiler.option.warnings.pedantic.error" value="false" valueType="boolean"/>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.269142486" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 							<tool command="gcc" id="cdt.managedbuild.tool.gnu.c.linker.exe.debug.614436139" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.debug">
 								<option id="gnu.c.link.option.ldflags.1992377857" name="Linker flags" superClass="gnu.c.link.option.ldflags" value="`pkg-config --libs glib-2.0`" valueType="string"/>
+								<option id="gnu.c.link.option.libs.170408753" superClass="gnu.c.link.option.libs" valueType="libs">
+									<listOptionValue builtIn="false" value="xml2"/>
+								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.893681373" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>

@@ -9,32 +9,35 @@
 #include <string.h>
 #include <assert.h>
 #include <stdbool.h>
+#include <glib.h>
+#include "list.h"
 #include "helper.h"
 
-void tokenize(const char *str, const char *delim, s_list *tokens)
+GSList* tokenize(const char *str, const char *delim)
 {
 #define TOKENIZE_BUFFER_SIZE 256
 	char *token;
 	char *copy;
-//	static int current_buffer_size;
-//
-//	if (copy && strlen(str)+1 > current_buffer_size) {
-//		current_buffer_size += TOKENIZE_BUFFER_SIZE;
-//		free(copy);
-//		copy = malloc(current_buffer_size);
-//	} else {
-//		current_buffer_size = TOKENIZE_BUFFER_SIZE;
-//		copy = malloc(current_buffer_size);
-//	}
+	GSList *result;
+/*	static int current_buffer_size;*/
+/**/
+/*	if (copy && strlen(str)+1 > current_buffer_size) {*/
+/*		current_buffer_size += TOKENIZE_BUFFER_SIZE;*/
+/*		free(copy);*/
+/*		copy = malloc(current_buffer_size);*/
+/*	} else {*/
+/*		current_buffer_size = TOKENIZE_BUFFER_SIZE;*/
+/*		copy = malloc(current_buffer_size);*/
+/*	}*/
 
 	copy = strdup(str);
-
-	init_list(tokens);
+	result = NULL;
 	token = strtok(copy, delim);
 	while (token) {
-		insert_into_list(tokens, token);
+		result = g_slist_prepend(result, token);
 		token = strtok(NULL, delim);
 	}
+	return result;
 }
 
 char *tokenize_name_and_index(const char *name_and_index, int *low, int *high, bool *no_index)
@@ -43,7 +46,7 @@ char *tokenize_name_and_index(const char *name_and_index, int *low, int *high, b
 	s_list index_tokens;
 	char *temp;
 
-	tokenize(name_and_index, "[]", &name_and_index_tokens);
+	//tokenize(name_and_index, "[]", &name_and_index_tokens);
 
 	if (name_and_index_tokens.num_items == 1) {
 		*low = -1;
@@ -52,7 +55,7 @@ char *tokenize_name_and_index(const char *name_and_index, int *low, int *high, b
 	} else {
 		assert(name_and_index_tokens.num_items == 2);
 
-		tokenize(name_and_index_tokens.head->next->data, ":", &index_tokens);
+		//tokenize(name_and_index_tokens.head->next->data, ":", &index_tokens);
 
 		if (index_tokens.num_items == 1) { /* name[lsb] */
 			*low = atoi(index_tokens.head->data);

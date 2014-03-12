@@ -9,9 +9,9 @@
 #define HELPER_H_
 
 #include <stdbool.h>
-#include "list.h"
+#include <glib.h> 
 
-void tokenize(const char *str, const char *delim, s_list *tokens);
+GSList *tokenize(const char *str, const char *delim);
 char *tokenize_name_and_index(const char *name_and_index, int *low, int *high, bool *no_index);
 
 #endif /* HELPER_H_ */

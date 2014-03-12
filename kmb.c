@@ -35,7 +35,7 @@ static void remove_non_steiner_leaves(Graph *g, int first_steiner)
 
 		if (current->child != first_steiner && g_hash_table_size(g->nodes[current->child].edges) == 0) {
 			/* leaf node */
-			if (get_vertex_property(g, current->child, VertexProperty_Type) != SteinerVertex) {
+			if (GET_VERTEX_DATA(g, current->child, MstData *)->vertex_type != SteinerVertex) {
 				/* if not steiner vertex, we remove it */
 				printf("removing edge %d -> %d\n", current->parent, current->child);
 				remove_directed_edge(g, current->parent, current->child);
@@ -111,14 +111,14 @@ void quick_test()
 	add_edge(g, 5, 1, 0);
 	add_edge(g, 8, 7, 0);
 	add_edge(g, 7, 6, 0);
-	for (i = 0; i < g->num_nodes; i++) {
-		set_vertex_property(g, i, VertexProperty_Type, NormalVertex);
-	}
-
-	set_vertex_property(g, 0, VertexProperty_Type, SteinerVertex);
-	set_vertex_property(g, 1, VertexProperty_Type, SteinerVertex);
-	set_vertex_property(g, 2, VertexProperty_Type, SteinerVertex);
-	set_vertex_property(g, 3, VertexProperty_Type, SteinerVertex);
+/*	for (i = 0; i < g->num_nodes; i++) {*/
+/*		set_vertex_property(g, i, VertexProperty_Type, NormalVertex);*/
+/*	}*/
+/**/
+/*	set_vertex_property(g, 0, VertexProperty_Type, SteinerVertex);*/
+/*	set_vertex_property(g, 1, VertexProperty_Type, SteinerVertex);*/
+/*	set_vertex_property(g, 2, VertexProperty_Type, SteinerVertex);*/
+/*	set_vertex_property(g, 3, VertexProperty_Type, SteinerVertex);*/
 	remove_non_steiner_leaves(g, 0);	
 }
 
@@ -206,13 +206,13 @@ void kmb(Graph *g, Graph **result)
 
 	/* building distance graph ONLY for Steiner nodes */
 	for (i = 0; i < g->num_nodes; i++) {
-		if (get_vertex_property(g, i, VertexProperty_Type) == SteinerVertex) { /* check whether it's Steiner */
+		if (GET_VERTEX_DATA(g, i, MstData *)->vertex_type == SteinerVertex) { /* check whether it's Steiner */
 			if (steiner == -1) {
 				steiner = i;
 			}
 			build_shortest_path_tree(g, i, &distance[i], &predecessor[i], NULL);
 			for (j = i+1; j < g->num_nodes; j++) {
-				if (get_vertex_property(g, j, VertexProperty_Type) == SteinerVertex) { /* check whether it's Steiner */
+				if (GET_VERTEX_DATA(g, j, MstData *)->vertex_type == SteinerVertex) { /* check whether it's Steiner */
 					add_edge(temp_graph, i, j, distance[i][j]);
 				}
 			}
@@ -232,7 +232,8 @@ void kmb(Graph *g, Graph **result)
 	print_graph(temp_graph);
 
 	for (i = 0; i < g->num_nodes; i++) {
-		set_vertex_property(temp_graph, i, VertexProperty_Type, get_vertex_property(g, i, VertexProperty_Type));
+		SET_VERTEX_DATA(temp_graph, i) = malloc(sizeof(MstData));
+		GET_VERTEX_DATA(temp_graph, i, MstData *)->vertex_type = GET_VERTEX_DATA(g, i, MstData *)->vertex_type;
 	}
 	remove_non_steiner_leaves(temp_graph, steiner);
 	printf("mst after removing non-steiner leaf nodes\n");

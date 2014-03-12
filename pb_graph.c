@@ -93,7 +93,7 @@ s_pb_graph_pin ***get_pb_pins(s_pb *parent_pb, s_pb **child_pbs, const char *por
 	int i;
 	s_pb *pb;
 
-	tokenize(port_string, " ", &tokens);
+	//tokenize(port_string, " ", &tokens);
 
 	*num_sets = tokens.num_items;
 	pins = malloc(sizeof(s_pb_graph_pin **) * *num_sets);
@@ -102,7 +102,7 @@ s_pb_graph_pin ***get_pb_pins(s_pb *parent_pb, s_pb **child_pbs, const char *por
 	item = tokens.head;
 	set = 0;
 	while (item) {
-		tokenize(item->data, ".", &instance_name_and_port_name);
+		//tokenize(item->data, ".", &instance_name_and_port_name);
 
 		assert(instance_name_and_port_name.num_items == 2);
 

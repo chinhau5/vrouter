@@ -8,6 +8,9 @@
 #ifndef NETLIST_H_
 #define NETLIST_H_
 
+#include "vpr_types.h"
+
+
 void parse_netlist(
 		const char *filename, s_pb_top_type *pb_top_types, int num_pb_top_types, /* inputs */
 		s_pb **pbs, int *num_pbs,

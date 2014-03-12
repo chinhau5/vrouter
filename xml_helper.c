@@ -10,13 +10,10 @@
 
 xmlNodePtr find_next_element(xmlNodePtr node, const char *element)
 {
-	while (node) {
-		if (!strcmp(node->name, element)) {
-			return node;
-		}
-		node = node->next;
+	xmlNodePtr current;
+	for (current = node; current && strcmp(current->name, element); current = current->next) {
 	}
-	return NULL;
+	return current;	
 }
 
 int get_child_count(xmlNodePtr parent, const char *element)

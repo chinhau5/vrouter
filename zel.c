@@ -29,11 +29,14 @@ Triple *get_triples(Graph *g, int *num_triples)
 
 	n = 0;
 	for (i = 0; i < g->num_nodes; i++) {
-		if (get_vertex_property(g, i, VertexProperty_Type) == SteinerVertex) continue;
+		if (GET_VERTEX_DATA(g, i, MstData *)->vertex_type == NormalVertex) continue;
+		
 		for (j = i + 1; j < g->num_nodes; j++) {
-			if (get_vertex_property(g, j, VertexProperty_Type) == SteinerVertex) continue;
+			if (GET_VERTEX_DATA(g, j, MstData *)->vertex_type == NormalVertex) continue;
+			
 			for (k = j + 1; k < g->num_nodes; k++) {
-				if (get_vertex_property(g, k, VertexProperty_Type) == SteinerVertex) continue;
+				if (GET_VERTEX_DATA(g, k, MstData *)->vertex_type == NormalVertex) continue;
+
 				for (v = 0; v < 3; v++) {
 					triples[n].v[v] = i;
 				}

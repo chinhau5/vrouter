@@ -17,13 +17,13 @@ const char *port_type_name[] = { "input", "output", "clock" };
 
 void parse_pb_type(xmlNodePtr pb_type_node, s_pb_type *pb_type, s_pb_type *parent);
 
-//void print_tabs(FILE *fp, int num_tabs)
-//{
-//	int i;
-//	for (i = 0; i < num_tabs; i++) {
-//		fprintf(fp, "\t");
-//	}
-//}
+void print_tabs(FILE *fp, int num_tabs)
+{
+	int i;
+	for (i = 0; i < num_tabs; i++) {
+		fprintf(fp, "\t");
+	}
+}
 
 void dump_pb(s_pb_type *pb_type, int level)
 {

@@ -90,7 +90,7 @@ void parse_block_ports(xmlNodePtr block_node, s_pb *pb, GHashTable *external_net
 			port = find_pb_type_port(pb->type, port_name);
 			assert(port);
 
-			tokenize(port_node->children->content, " ", &tokens);
+			//tokenize(port_node->children->content, " ", &tokens);
 			assert(tokens.num_items == find_pb_type_port(pb->type, xmlGetProp(port_node, "name"))->num_pins);
 
 			/* for all pins */
@@ -138,7 +138,7 @@ void parse_block_ports(xmlNodePtr block_node, s_pb *pb, GHashTable *external_net
 			port = find_pb_type_port(pb->type, port_name);
 			assert(port);
 
-			tokenize(port_node->children->content, " ", &tokens);
+			//tokenize(port_node->children->content, " ", &tokens);
 			assert(tokens.num_items == find_pb_type_port(pb->type, xmlGetProp(port_node, "name"))->num_pins);
 
 			/* for all pins */
@@ -292,6 +292,123 @@ s_pb *parse_block(s_pb **pbs, xmlNodePtr block_node, s_pb_type *pb_types, int nu
 	return pb;
 }
 
+typedef struct _port {
+	char **connection_specs;
+	int num_pins;
+} port;
+
+typedef struct _stack_frame {
+	xmlNodePtr block_node;
+	GHashTable *input_port_specs; /* port name -> port * map */
+	GHashTable *output_port_specs; /* port name -> port * map */
+	struct _stack_frame **children;
+	int num_children;
+} stack_frame;
+
+void parse_port(xmlNodePtr port_type_node, GHashTable **port_specs) /* num_pins[port] port_connections[port][pin] */
+{
+	int pin;	
+	xmlNodePtr port_node;
+	GSList *tokens;
+	GSList *item;
+	char *port_name;
+	port *p;
+
+	*port_specs = g_hash_table_new(g_str_hash, g_str_equal);
+
+	for (port_node = find_next_element(port_type_node->children, "port"); 
+			port_node != NULL;
+			port_node = find_next_element(port_node->next, "port")) {
+		port_name = xmlGetProp(port_node, "name");
+		if (g_hash_table_contains(*port_specs, port_name)) {
+			printf("Error: Existing port specifications for %s found\n", port_name);
+			exit(-1);
+		}
+		tokens = tokenize(port_node->children->content, " ");
+		p = malloc(sizeof(port));
+		p->num_pins = g_slist_length(tokens);
+		p->connection_specs = malloc(sizeof(char *) * p->num_pins);
+		printf("port name: %s conn: ", port_name);
+		for (pin = 0, item = tokens; item != NULL && pin < p->num_pins; item = item->next, pin++) {
+			p->connection_specs[pin] = item->data;
+			printf("%s ", p->connection_specs[pin]);
+		}	
+		printf("\n");
+		g_hash_table_insert(*port_specs, port_name, p);
+	}
+}
+void parse_all_ports(stack_frame *frame)
+{
+	xmlNodePtr port_type_node;
+
+	port_type_node = find_next_element(frame->block_node->children, "inputs");
+	if (port_type_node) {
+		parse_port(port_type_node, &frame->input_port_specs); 
+	}
+
+	if (port_type_node) {
+		port_type_node = find_next_element(port_type_node->next, "outputs");
+		if (port_type_node) {
+			parse_port(port_type_node, &frame->output_port_specs); 
+		}
+	}
+}
+
+void search()
+{
+}
+
+void parse_block_2(xmlNodePtr block_node)
+{
+	GQueue *frames;
+	struct _stack_frame *root_frame, *current_frame, *new_frame;
+	xmlNodePtr node;
+	int i;
+
+	frames = g_queue_new();
+
+	check_element_name(block_node, "block");
+
+	/*instance_name_and_index = xmlGetProp(block_node, "instance");
+	assert(instance_name_and_index);
+	instance_name = tokenize_name_and_index(instance_name_and_index, &instance_low, &instance_high, &instance_no_index);
+	assert(instance_low == instance_high && !instance_no_index);*/
+	new_frame = malloc(sizeof(stack_frame));
+	new_frame->block_node = block_node;
+	root_frame = new_frame;
+	g_queue_push_head(frames, new_frame);
+
+	/* do a depth first search because ports depends on ports on lower level */
+	while (!g_queue_is_empty(frames)) {
+		current_frame = g_queue_pop_head(frames);	
+		printf("name: %s instance: %s mode: %s\n", xmlGetProp(current_frame->block_node, "name"), xmlGetProp(current_frame->block_node, "instance"), xmlGetProp(current_frame->block_node, "mode"));
+		parse_all_ports(current_frame);
+		current_frame->num_children = get_child_count(current_frame->block_node, "block");
+		current_frame->children = malloc(sizeof(stack_frame) * current_frame->num_children);
+		for (i = 0, node = find_next_element(current_frame->block_node->children, "block"); i < current_frame->num_children && node != NULL; node = find_next_element(node->next, "block"), i++) {
+			new_frame = malloc(sizeof(stack_frame));
+			new_frame->block_node = node;
+			current_frame->children[i] = new_frame;
+			g_queue_push_head(frames, new_frame);
+		}
+	}
+	
+	g_queue_push_head(frames, root_frame);
+	/* do DFS again but this time look for port connections */
+	
+/*	while (!g_queue_is_empty(frames)) {*/
+/*		current_frame = g_queue_pop_head(frames);	*/
+/*		//printf("name: %s instance: %s mode: %s\n", current_frame->);*/
+/*		for (port = 0; port < current_frame->num_output_ports; port++) {*/
+/*			for (pin = 0; pin < current_frame->num_output_pins[port]; pin++) {*/
+/*				current_frame->num_output_pins[port][pin]		*/
+/*		parse_all_ports(current_frame);*/
+/*		for (i = 0; i < current_frame->num_children; i++) { */
+/*			g_queue_push_head(frames, current_frame->children[i]);*/
+/*		}*/
+/*	}*/
+}
+
 void parse_top_level_block(s_pb *pb, GQueue *sub_blocks, xmlNodePtr block_node, s_pb_top_type *pb_top_types, int num_pb_top_types)
 {
 	int i;
@@ -411,6 +528,7 @@ void parse_netlist(
 	xmlNodePtr root_node;
 	xmlNodePtr block_node;
 	int count;
+	int block;
 	GQueue *block_queue;
 	struct _block_node_pb_pair *pair;
 
@@ -418,8 +536,16 @@ void parse_netlist(
 	root_node = xmlDocGetRootElement(netlist);
 	check_element_name(root_node, "block");
 
-	*num_pbs = get_child_count(root_node, "block");
-	*pbs = malloc(sizeof(s_pb) * *num_pbs);
+	/**num_pbs = get_child_count(root_node, "block");*/
+	/**pbs = malloc(sizeof(s_pb) * *num_pbs);*/
+	
+	for (block = 0, block_node = find_next_element(root_node->children, "block"); 
+			block_node != NULL;
+			block_node = find_next_element(block_node->next, "block"), block++) {
+		parse_block_2(block_node);
+	}
+
+	return;
 
 	/* iterate through all the top level blocks */
 	count = 0;

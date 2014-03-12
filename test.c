@@ -9,6 +9,7 @@
 #include "test.h"
 #include "graph.h"
 #include "kmb.h"
+#include "netlist.h"
 
 typedef enum { TILE = 0, CHANX, CHANY } GridGraphVertexType;
 
@@ -17,6 +18,12 @@ int grid_graph_lookup(int x, int y, int nx, int ny, GridGraphVertexType type)
 {
 	return ((y*nx)+x)*1 + type;
 }
+
+void test_parser()
+{
+	parse_netlist("ex5p.net", NULL, 0, NULL, NULL, NULL);
+}
+	
 
 Graph *grid_graph_alloc(int nx, int ny)
 {
@@ -97,6 +104,7 @@ void test_kmb()
 	float distance[1000];
 	int predecessor[1000];
 	int i;
+	MstData *data;
 
 	/*g = grid_graph_alloc(nx, ny);*/
 
@@ -121,12 +129,14 @@ void test_kmb()
 	add_edge(g, 3, 4, 2);	
 	add_edge(g, 2, 3, 9);	
 	for (i = 0; i < 9; i++) {
-		set_vertex_property(g, i, VertexProperty_Type, NormalVertex);
+		data = malloc(sizeof(MstData));
+		data->vertex_type = NormalVertex;
+		SET_VERTEX_DATA(g, i) = data;
 	}
-	set_vertex_property(g, 0, VertexProperty_Type, SteinerVertex);
-	set_vertex_property(g, 1, VertexProperty_Type, SteinerVertex);
-	set_vertex_property(g, 2, VertexProperty_Type, SteinerVertex);
-	set_vertex_property(g, 3, VertexProperty_Type, SteinerVertex);
+	GET_VERTEX_DATA(g, 0, MstData *)->vertex_type = SteinerVertex;
+	GET_VERTEX_DATA(g, 1, MstData *)->vertex_type = SteinerVertex;
+	GET_VERTEX_DATA(g, 2, MstData *)->vertex_type = SteinerVertex;
+	GET_VERTEX_DATA(g, 3, MstData *)->vertex_type = SteinerVertex;
 
 	result = NULL;
 	kmb(g, &result);

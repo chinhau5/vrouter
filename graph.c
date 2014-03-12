@@ -65,22 +65,23 @@ void add_vertex(Graph *g, int n)
 		}
 
 		g->nodes[g->num_nodes].edges = g_hash_table_new(g_direct_hash, g_direct_equal);
+		g->nodes[g->num_nodes].data = NULL;
 
 		g->num_nodes++;
 	}
 }
 
-void set_vertex_property(Graph *g, int v, int prop, int value)
-{
-	assert(v >= 0 && v < g->num_nodes && prop >= 0 && prop < VERTEX_NUM_PROPERTIES);
-	g->nodes[v].properties[prop] = value;
-}
-
-int get_vertex_property(Graph *g, int v, int prop)
-{
-	assert(v >= 0 && v < g->num_nodes && prop >= 0 && prop < VERTEX_NUM_PROPERTIES);
-	return g->nodes[v].properties[prop];
-}
+/*void set_vertex_property(Graph *g, int v, int prop, int value)*/
+/*{*/
+/*	assert(v >= 0 && v < g->num_nodes && prop >= 0 && prop < VERTEX_NUM_PROPERTIES);*/
+/*	g->nodes[v].properties[prop] = value;*/
+/*}*/
+/**/
+/*int get_vertex_property(Graph *g, int v, int prop)*/
+/*{*/
+/*	assert(v >= 0 && v < g->num_nodes && prop >= 0 && prop < VERTEX_NUM_PROPERTIES);*/
+/*	return g->nodes[v].properties[prop];*/
+/*}*/
 
 static inline bool edge_exists(Graph *g, int v1, int v2)
 {
