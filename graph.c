@@ -55,6 +55,21 @@ void free_graph(Graph *g)
 	free(g->nodes);
 }
 
+int add_one_vertex(Graph *g)
+{
+	int v;
+	if (g->num_nodes >= g->max_nodes) {
+		g->max_nodes += REALLOC_INC;
+		g->nodes = realloc(g->nodes, sizeof(Vertex) * g->max_nodes);
+	}
+
+	g->nodes[g->num_nodes].edges = g_hash_table_new(g_direct_hash, g_direct_equal);
+	g->nodes[g->num_nodes].data = NULL;
+	v = g->num_nodes;	
+	g->num_nodes++;
+	return v;
+}
+
 void add_vertex(Graph *g, int n)
 {
 	int i;
@@ -66,7 +81,7 @@ void add_vertex(Graph *g, int n)
 
 		g->nodes[g->num_nodes].edges = g_hash_table_new(g_direct_hash, g_direct_equal);
 		g->nodes[g->num_nodes].data = NULL;
-
+		
 		g->num_nodes++;
 	}
 }

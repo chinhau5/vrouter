@@ -19,6 +19,7 @@ GSList* tokenize(const char *str, const char *delim)
 	char *token;
 	char *copy;
 	GSList *result;
+	GSList *current;
 /*	static int current_buffer_size;*/
 /**/
 /*	if (copy && strlen(str)+1 > current_buffer_size) {*/
@@ -32,9 +33,15 @@ GSList* tokenize(const char *str, const char *delim)
 
 	copy = strdup(str);
 	result = NULL;
+	current = NULL;
 	token = strtok(copy, delim);
 	while (token) {
-		result = g_slist_prepend(result, token);
+		current = g_slist_append(current, token);
+		if (result != NULL) {
+			current = current->next;
+		} else {
+			result = current;
+		}
 		token = strtok(NULL, delim);
 	}
 	return result;

@@ -62,6 +62,7 @@ void free_graph(Graph *g);
 void reset_graph(Graph *g);
 
 void add_vertex(Graph *g, int n);
+int add_one_vertex(Graph *g);
 void add_edge(Graph *g, int v1, int v2, float weight);
 bool add_directed_edge(Graph *g, int v1, int v2, float weight);
 void remove_edge(Graph *g, int v1, int v2);
